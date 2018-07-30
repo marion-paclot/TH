@@ -1,4 +1,4 @@
-# TH
+# Taxe d'habitation
 
 Cette application R-Shiny a pour objectif de détailler le calcul de la taxe d'habitation d'un foyer, à partir de ses informations personnelles (valeur locative brute, commune d'habitation, revenu fiscal de référence, nombre de parts fiscales, minima sociaux éventuellement perçus ...) et des éléments d'impositions relatifs à sa commune (abattements, majoration ...).
 
