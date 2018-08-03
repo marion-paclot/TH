@@ -1,24 +1,17 @@
-
 navbarPage(
   title = "Taxe d'habitation",
   tabPanel(
-    "Calcul",
+    "Simulation",
     sidebarPanel(
       width = 4,
       id = "form",
-      numericInput(
-        'rfr',
-        'Revenu fiscal de référence',
-        0,
-        min = 0,
-        step = 1
-      ),      
-      bsTooltip(
-        id = "rfr",
-        title = "Somme des revenus des habitants du foyer en année n-1",
-        placement = "right",
-        trigger = "hover"
-      ),
+      
+      numericInput('rfr', 
+                   label = 'Revenu fiscal de référence',
+                   value = 0,
+                   min = 0,
+                   step = 1),
+      
       checkboxInput('isf', "ISF", value = FALSE),
       checkboxGroupInput(
         'alloc',
@@ -87,7 +80,7 @@ navbarPage(
       div(
         style = "display:inline-block",
         numericInput(
-          'VLBrute',
+          'vlBrute',
           'Valeur locative brute',
           0,
           min = 1,
@@ -110,22 +103,23 @@ navbarPage(
                br(),
                textOutput("exoneration_totale"),
                br(),
-               conditionalPanel(condition = "output.assujeti", textOutput("vlCommune")),
-               conditionalPanel(condition = "output.assujeti", textOutput("vlBrute")),
-               br(),
                conditionalPanel(condition = "output.assujeti", dataTableOutput("calcul")),
                br(),
                conditionalPanel(condition = "output.assujeti", textOutput("plafond"))
               ),
       tabPanel('Valeur loc nette',
-               conditionalPanel(condition = "output.assujeti", dataTableOutput("abattements")),
+               conditionalPanel(condition = "output.assujeti", textOutput("vlNette")),
                br(),
+               # uiOutput("myList"),
+               # br(),
                conditionalPanel(condition = "output.assujeti", 
-                                radioButtons('ab_gph', 'Graphique en cascade',
+                                radioButtons('ab_gph', "Element de calcul de la base d'imposition, détail des abattements",
                                              choices = c('Commune' = 'commune', 
                                                          'Syndicat' = 'syndicat', 
                                                          'Intercommunalité' = 'interco', 
-                                                         'TSE' = 'TSE'), inline = TRUE)),
+                                                         'TSE' = 'TSE', 'GEMAPI' = 'GEMAPI'), inline = TRUE)),
+               conditionalPanel(condition = "output.assujeti", dataTableOutput("abattements")),
+               br(),
                conditionalPanel(condition = "output.assujeti", plotlyOutput("cascadeAbattements"))
                
                )
