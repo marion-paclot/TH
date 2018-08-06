@@ -10,14 +10,14 @@ options(shiny.reactlog = T, stringsAsFactors = FALSE)
 
 # Fichier de recensement des éléments d'imposition à la fiscalité directe locale
 # Seule les colonnes relatives à la TH ont été conservées
-rei = read.csv2('REI_TH.csv')
+rei = read.csv2('REI_TH.csv', fileEncoding = 'UTF-8')
 url_rei = "https://www.data.gouv.fr/fr/datasets/impots-locaux-fichier-de-recensement-des-elements-dimposition-a-la-fiscalite-directe-locale-rei-3/"
 
 # Seuil d'éligibilité du CGI
-grille_1417_1_CGI = read.csv2('seuils_1417-1-CGI.csv')
-grille_1417_1bis_CGI = read.csv2('seuils_1417-1bis-CGI.csv')
-grille_1417_2_CGI = read.csv2('seuils_1417-2-CGI.csv')
-grille_1414_A1_CGI = read.csv2('seuils_1414-A-1-CGI.csv')
+grille_1417_1_CGI = read.csv2('seuils_1417-1-CGI.csv', fileEncoding = 'UTF-8')
+grille_1417_1bis_CGI = read.csv2('seuils_1417-1bis-CGI.csv', fileEncoding = 'UTF-8')
+grille_1417_2_CGI = read.csv2('seuils_1417-2-CGI.csv', fileEncoding = 'UTF-8')
+grille_1414_A1_CGI = read.csv2('seuils_1414-A-1-CGI.csv', fileEncoding = 'UTF-8')
 
 # Liens vers les articles du CGI
 url_1417 = "https://www.legifrance.gouv.fr/affichCodeArticle.do?idArticle=LEGIARTI000027517723&cidTexte=LEGITEXT000006069577"
@@ -119,6 +119,10 @@ exo_logement_modeste_DOM = function(zone, vlBrute, reiCom){
   return(zone != 'Métropole' & vlBrute <= reiCom$L03)
 }
 
+log = function (message) {
+  cat(file = stderr(), message, '\n')
+}
+
 ################################################################################
 # Fonctions pour le calcul étape par étape
 calculer_multiplicateur = function(nombrePAC, rfr, seuil, vlBrute, situation, 
@@ -132,6 +136,7 @@ calculer_multiplicateur = function(nombrePAC, rfr, seuil, vlBrute, situation,
   handicape = as.numeric('Handicapé' %in% situation | 'ASI' %in% alloc |'AAH' %in% alloc)
   
   multiplicateur = rbind.data.frame(general, PAC12, PAC3, special, handicape)
+  
   colnames(multiplicateur) = c('commune', 'syndicat', 'interco', 'TSE', 'GEMAPI')
   rownames(multiplicateur) = c('general', 'pac12', 'pac3', 'special', 'handicape')
   
@@ -255,7 +260,7 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
   detailCalcul = data.frame(
     'Valeur locative brute' = euro2(vlBrute), 
     'Abattements' = euro(totauxAbattements), 
-    "Base nette d'imposition" = euro2(basesNettes), 
+    "Base nette" = euro2(basesNettes), 
     "Taux d'imposition" = paste0(100*tauxCotisation, '%'), 
     "Cotisations" = euro(cotisations), 
     "Taux de gestion" = paste0(100*tauxFraisGestion, '%'), 

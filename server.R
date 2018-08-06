@@ -3,7 +3,7 @@ server <- function(input, output, session) {
   observeEvent(TRUE, {
     showModal(modalDialog(
       title = "Message important",
-      "Projet d'explication pédagogique du calcul de la taxe d'habitation.
+      "Projet d'explication du calcul de la taxe d'habitation.
       Des erreurs peuvent subsister (calcul des abattements des syndicats et sur le plafonnement).
       La valeur figurant sur votre avis d'imposition est celle qui fait foi.",
       easyClose = TRUE
@@ -17,7 +17,6 @@ server <- function(input, output, session) {
     nbParts = as.numeric(gsub(',', '.', input$nbParts))
     nbPAC = as.numeric(gsub(',', '.', input$nbPAC))
 
-    
     # Protection contre les valeurs vides
     vlBrute = input$vlBrute
     vlBrute[is.na(vlBrute)] = 0
@@ -68,16 +67,11 @@ server <- function(input, output, session) {
   })
   
   #############################################################################
-  #############################################################################
-  #############################################################################
-  #############################################################################
-  ## En cours de traitement
+  ## Bascule d'un onglet à l'autre quand clic sur une ligne spécifique du tableau calcul
   observeEvent(input$calcul_cell_clicked, {
     cellule = data.frame(input$calcul_cell_clicked)
-    print(cellule$value)
     if (nrow(cellule) >0){
       if (cellule$value == "Abattements"){
-        print("ok")
         updateTabsetPanel(session,inputId = 'tabs', selected = 'Abattements')
       }
     }
@@ -231,7 +225,22 @@ server <- function(input, output, session) {
   })
 
   output$calcul = DT::renderDataTable({
-    datatable(calculTH()$detailCalcul, options = list(dom = 't', "pageLength" = 40))
+    datatable(calculTH()$detailCalcul, 
+              callback = JS("
+                            firstColumn = $('#calcul tr td:first-child');
+                            $(firstColumn[0]).attr('title', 'Valeur du bien défini à partir de ses caractéristiques');
+                            $(firstColumn[1]).attr('title', 'Somme des abattements votés par la collectivité');
+                            $(firstColumn[2]).attr('title', 'Valeur locative après abattement');
+                            $(firstColumn[3]).attr('title', 'Taux voté par la collectivité');
+                            $(firstColumn[4]).attr('title', 'Base nette x taux de cotisation');
+                            $(firstColumn[6]).attr('title', 'Cotisations x taux de gestion');
+                            $(firstColumn[8]).attr('title', 'Base nette x taux base élevée');
+                            $(firstColumn[10]).attr('title', 'Base nette x taux résidence secondaire');
+
+
+
+                          "),
+              options = list(dom = 't', "pageLength" = 40))
     }, selection = "single", server = FALSE)
 
   
