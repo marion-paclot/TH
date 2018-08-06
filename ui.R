@@ -97,32 +97,44 @@ navbarPage(
      
     ),
     mainPanel(width = 8,
+              tags$head(tags$style(HTML("pre { white-space: pre-wrap; word-break: keep-all; }"))),
+              
     tabsetPanel(
+      id = 'tabs',
       type = "tabs",
       tabPanel("Taxe",
                br(),
-               textOutput("exoneration_totale"),
+               verbatimTextOutput("exoneration"),
                br(),
                conditionalPanel(condition = "output.assujeti", dataTableOutput("calcul")),
                br(),
-               conditionalPanel(condition = "output.assujeti", textOutput("plafond"))
+               conditionalPanel(condition = "output.assujeti", dataTableOutput("totaux")),
+               br(),
+               conditionalPanel(condition = "output.assujeti", dataTableOutput("plafonnement"))
               ),
-      tabPanel('Valeur loc nette',
-               conditionalPanel(condition = "output.assujeti", textOutput("vlNette")),
+      tabPanel('Abattements',
+               br(),
+               conditionalPanel(condition = "output.assujeti && input.residence == 'principale'", verbatimTextOutput("vlNette")),
+               conditionalPanel(condition = "input.residence == 'secondaire'", verbatimTextOutput("vlNette_secondaire")),
                br(),
                # uiOutput("myList"),
                # br(),
-               conditionalPanel(condition = "output.assujeti", 
+               conditionalPanel(condition = "output.assujeti && input.residence == 'principale'",
                                 radioButtons('ab_gph', "Element de calcul de la base d'imposition, détail des abattements",
-                                             choices = c('Commune' = 'commune', 
-                                                         'Syndicat' = 'syndicat', 
-                                                         'Intercommunalité' = 'interco', 
+                                             choices = c('Commune' = 'commune',
+                                                         'Syndicat' = 'syndicat',
+                                                         'Intercommunalité' = 'interco',
                                                          'TSE' = 'TSE', 'GEMAPI' = 'GEMAPI'), inline = TRUE)),
-               conditionalPanel(condition = "output.assujeti", dataTableOutput("abattements")),
+               conditionalPanel(condition = "output.assujeti && input.residence == 'principale'", 
+                                dataTableOutput("abattements")),
                br(),
-               conditionalPanel(condition = "output.assujeti", plotlyOutput("cascadeAbattements"))
-               
-               )
+               conditionalPanel(condition = "output.assujeti && input.residence == 'principale'", 
+                                plotlyOutput("cascadeAbattements"))
+
+               ),
+      tabPanel('Cotisations et frais de gestion'),
+      tabPanel('Cotisations additionnelles'),
+      tabPanel('Plafonnement')
       )
     )
   ),
