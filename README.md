@@ -7,7 +7,6 @@ https://www.impots.gouv.fr/portail/www2/fichiers/documentation/brochure/idl_2017
 Elle n'a qu'une valeur pédagogique et n'est pas un calcul officiel, le seul montant faisant foi étant celui qui figure sur l'avis d'impôt.
 
 L'éléments de fiscalité relatifs au lieu d'habitation se trouvent dans le fichier REI-2017.csv, disponible à l'adresse https://www.data.gouv.fr/fr/datasets/r/249a166e-6a4e-4d2a-b3f4-00ef0ac40d2d. Pour achever le calcul et l'explication, manquent plusieurs informations : 
-* Les quotités d'abattement pour les syndicats de communes. 
 * Le taux de majoration "résidence secondaire" voté par la commune (de 5% à 60%, taux voté par les communes ayant choisi d'appliquer une majoration)
 * Le "taux consolidé 2000 global", correspondant à la somme des taux d'imposition applicables en 2000
 * Les taux d'abattements applicables en 2003 et 2017. 
