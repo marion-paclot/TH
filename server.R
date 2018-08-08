@@ -261,7 +261,7 @@ server <- function(input, output, session) {
     phrase = "La base nette d'imposition (valeur locative nette) d'un bien immobilier 
     est calculée en soustrayant la somme des abattements à la valeur locative brute du bien.
     <br>Si ces abattements excèdent la valeur locative brute, la valeur locative nette est ramenée à 0.
-    <br>Chaque collectivité fixe le montant des 5 abattements, qui peut être un montant forfaitaire ou
+    <br>Chaque collectivité, si elle est à fiscalité propre, fixe le montant des 5 abattements, qui peut être un montant forfaitaire ou
     un pourcentage de la valeur locative moyenne de la collectivité."
     phrase = gsub("\n|\\s+", ' ', phrase)
     phrase = gsub("<br>", '\n', phrase)
