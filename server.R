@@ -201,7 +201,7 @@ server <- function(input, output, session) {
     totaux = data.frame(Totaux = c(totalCotisations, totalFraisGestion, totalBaseElevee,
                                    totalResSecondaire))
     totaux$Totaux = euro2(totaux$Totaux)
-    rownames(totaux) = c("Cotisations", "Frais de Gestion",
+    rownames(totaux) = c("Cotisations", "Frais de gestion",
                          "Cotisation base élevée", "Cotisation résidence secondaire")
     
     plafond = calculTH()$plafond
@@ -234,7 +234,7 @@ server <- function(input, output, session) {
                             $(firstColumn[3]).attr('title', 'Taux voté par la collectivité');
                             $(firstColumn[4]).attr('title', 'Base nette x taux de cotisation');
                             $(firstColumn[6]).attr('title', 'Cotisations x taux de gestion');
-                            $(firstColumn[8]).attr('title', 'Base nette x taux base élevée');
+                            $(firstColumn[8]).attr('title', 'Valeur locative moyenne de la commune x taux base élevée');
                             $(firstColumn[10]).attr('title', 'Base nette x taux résidence secondaire');
 
 
@@ -256,7 +256,6 @@ server <- function(input, output, session) {
 
   
 ########################### Onglet abattements
-  
   
   output$vlNette <- renderText({
     phrase = "La base nette d'imposition (valeur locative nette) d'un bien immobilier 
@@ -316,4 +315,36 @@ server <- function(input, output, session) {
         g = cascade_abattements(entree()$vlBrute, abattements, multiplicateur)
         return(g)
       })
+      
+  ########################### Onglet cotisation et frais de gestion
+  output$cotisations = renderText({
+    phrase = "Les cotisations sont calculées en multipliant la base nette d'imposition par le taux
+    de cotisation voté par la collectivité."    
+    phrase = gsub("\n|\\s+", ' ', phrase)
+    phrase = gsub("<br>", '\n', phrase)
+    return(phrase)
+  })
+  output$cotisationsMajResSecondaire = renderText({
+    phrase = "Dans le cas d'une résidence secondaire, une majoration allant de 
+    5% à 60% peut être décidée par la commune. Ce calcul n'intègre pas cette 
+    majoration car il n'y a pas de base consolidée publique de ces taux."
+     
+    phrase = gsub("\n|\\s+", ' ', phrase)
+    phrase = gsub("<br>", '\n', phrase)
+    return(phrase)
+  })   
+  output$fraisGestion = renderText({
+    phrase = "Les frais de gestion sont calculés collectivité par collectivité, 
+    en multipliant le montant de cotisation par un taux spécifique à la collectivité. 
+    Les frais de gestion pour la commune et l'intercommunalité sont calculés en 
+    sommant les montants de cotisation, avant d'appliquer le taux de 1% (résidence
+    principale) ou 3% (résidence secondaire)."
+    phrase = gsub("\n|\\s+", ' ', phrase)
+    phrase = gsub("<br>", '\n', phrase)
+    return(phrase)
+  })   
+
+  
 } 
+
+

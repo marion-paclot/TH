@@ -247,8 +247,8 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
   #####################
   
   # Prélèvement pour base elevée - applicable uniquement aux communes
-  tauxBaseElevee = calculer_taux_base_elevee(typeRes, basesNettes)
-  cotisationsBaseElevee = calculer_prelevement(basesNettes, tauxBaseElevee)
+  tauxBaseElevee = calculer_taux_base_elevee(typeRes, basesNettes[1])
+  cotisationsBaseElevee = calculer_prelevement(reiCommune[, as.character(colValeurLoc[1])], tauxBaseElevee)
   
   # Prélèvement résidense secondaire
   tauxResSecondaire = calculer_taux_residence_secondaire(typeRes)

@@ -132,8 +132,16 @@ navbarPage(
                                 plotlyOutput("cascadeAbattements"))
 
                ),
-      tabPanel('Cotisations et frais de gestion'),
-      tabPanel('Cotisations additionnelles'),
+      tabPanel('Cotisations et frais de gestion',
+               br(),
+               h4('Cotisations'),
+               conditionalPanel(condition = "output.assujeti", verbatimTextOutput("cotisations")),
+               conditionalPanel(condition = "output.assujeti && input.residence == 'secondaire'", 
+                                verbatimTextOutput("cotisationsMajResSecondaire")),
+               h4('Frais de gestion'),
+               conditionalPanel(condition = "output.assujeti", verbatimTextOutput("fraisGestion")),
+               h4("Majoration résidence secondaire au profit de l'Etat")
+      ),
       tabPanel('Plafonnement')
       )
     )
