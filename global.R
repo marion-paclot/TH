@@ -26,6 +26,7 @@ url_1414 = "https://www.legifrance.gouv.fr/affichCodeArticle.do?cidTexte=LEGITEX
 
 ################################################### 
 # Valeurs d'abattements pour une collectivité territoriale.
+# Colonnes Syndicat identiques à celles de la commune car EPCI sans fiscalité propre
 colAbattements = list(commune = c('J51A', 'J31A', 'J41A', 'J61A', 'J61HA'), 
                       syndicat = c('J52A', 'J32A', 'J42A', 'J62A', 'J62HA'), 
                       interco = c('J53A', 'J33A', 'J43A', 'J63A', 'J63HA'), 
@@ -125,14 +126,15 @@ log = function (message) {
 
 ################################################################################
 # Fonctions pour le calcul étape par étape
-calculer_multiplicateur = function(nombrePAC, rfr, seuil, vlBrute, situation, 
+ 
+calculer_multiplicateur = function(nbPAC, rfr, seuil, vlBrute, situation, 
                                    alloc, reiCommune){
 
   vlMoyenne = reiCommune[,as.character(colValeurLoc)]
   general = 1
-  PAC12 = min(2, nombrePAC)
-  PAC3 = max(0, nombrePAC -2)
-  special = as.numeric(rfr <= seuil &  vlBrute <= (1.3 + nombrePAC*0.1)*vlMoyenne) # Condition modeste + logement raisonnable
+  PAC12 = min(2, nbPAC)
+  PAC3 = max(0, nbPAC -2)
+  special = as.numeric(rfr <= seuil &  vlBrute <= (1.3 + nbPAC*0.1)*vlMoyenne) # Condition modeste + logement raisonnable
   handicape = as.numeric('Handicapé' %in% situation | 'ASI' %in% alloc |'AAH' %in% alloc)
   
   multiplicateur = rbind.data.frame(general, PAC12, PAC3, special, handicape)
@@ -159,6 +161,14 @@ extraire_abattements = function(reiCommune, nomCol, typeRes){
   colnames(abattements) = c('commune', 'syndicat', 'interco', 'TSE', 'GEMAPI')
   rownames(abattements) = c('general', 'pac12', 'pac3', 'special', 'handicape')
   
+  print(abattements)
+  # Cas des EPCI à fiscalité propre. Si on 
+  if (sum(abattements$interco) == 0){
+    abattements$interco = abattements$commune
+  }
+  if (sum(abattements$syndicat) == 0){
+    abattements$syndicat = abattements$commune
+  }
   return(abattements)
 }
 
@@ -213,6 +223,16 @@ calculer_plafonnement = function(rfr, zoneGeo, isf, nbParts, typeRes){
   return(th_max)
 }
 
+
+nbPAC = 1
+rfr = 100000
+seuil = 10000
+vlBrute = 7050
+situation = c()
+alloc = c()
+reiCommune = rei[31149,]
+nomColAbattements = colAbattements
+
 ################################
 detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCommune,
                             nomColAbattements, typeRes, zoneGeo, isf, nbParts){
@@ -227,7 +247,13 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
   # Cotisations par collectivité
   tauxCotisation = calculer_taux_cotisation(colTauxCotisations, reiCommune)
   cotisations = calculer_prelevement(basesNettes, tauxCotisation)
-
+  
+  # Modification pour la présentation des abattements : si tauxCotisation == 0, alors 0
+  for (i in 1:ncol(abattements)){
+    if (tauxCotisation[i] == 0){
+      abattements[,i] = rep(0,5)
+    }
+  }
 
   # Frais de gestion
   # On doit calculer des v modifiée car le taux de 1% ou 3% s'applique au cumul 
@@ -248,7 +274,7 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
   
   # Prélèvement pour base elevée - applicable uniquement aux communes
   tauxBaseElevee = calculer_taux_base_elevee(typeRes, basesNettes[1])
-  cotisationsBaseElevee = calculer_prelevement(reiCommune[, as.character(colValeurLoc[1])], tauxBaseElevee)
+  cotisationsBaseElevee = calculer_prelevement(basesNettes[1], tauxBaseElevee)
   
   # Prélèvement résidense secondaire
   tauxResSecondaire = calculer_taux_residence_secondaire(typeRes)
@@ -257,6 +283,7 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
   # Plafonnement
   plafond = calculer_plafonnement(rfr, zoneGeo, isf, nbParts, typeRes)
 
+  # Boucle de nouveau calcul
   detailCalcul = data.frame(
     'Valeur locative brute' = euro2(vlBrute), 
     'Abattements' = euro(totauxAbattements), 

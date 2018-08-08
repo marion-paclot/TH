@@ -234,7 +234,7 @@ server <- function(input, output, session) {
                             $(firstColumn[3]).attr('title', 'Taux voté par la collectivité');
                             $(firstColumn[4]).attr('title', 'Base nette x taux de cotisation');
                             $(firstColumn[6]).attr('title', 'Cotisations x taux de gestion');
-                            $(firstColumn[8]).attr('title', 'Valeur locative moyenne de la commune x taux base élevée');
+                            $(firstColumn[8]).attr('title', 'Base nette x taux base élevée');
                             $(firstColumn[10]).attr('title', 'Base nette x taux résidence secondaire');
 
 
