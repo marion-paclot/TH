@@ -241,19 +241,16 @@ server <- function(input, output, session) {
 
                           "),
               options = list(dom = 't', "pageLength" = 40))
-    }, selection = "single", server = FALSE)
+    })
 
   
   output$totaux =  DT::renderDataTable({
     datatable(totauxTH()$totaux, options = list(dom = 't', "pageLength" = 40))
-    }, 
-    selection = "single", server = FALSE)
+    })
   
   output$plafonnement = DT::renderDataTable({
     datatable(totauxTH()$plafonnement, options = list(dom = 't', "pageLength" = 40))
-    }, 
-    selection = "single", server = FALSE)
-
+    })
   
 ########################### Onglet abattements
   
