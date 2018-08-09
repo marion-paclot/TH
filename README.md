@@ -14,3 +14,10 @@ Pour 2017, on dispose des quotités (montants) ce qui suffit à faire le calcul 
 
 Des erreurs, notamment sur des cas particuliers peuvent subsister, l'ensemble des règles relatives à la taxe d'habitation étant très complexes. 
 Enfin, le cas modélisé par l'application reste le cas "classique" d'un ménage. Les cas spécifiques d'hébergement collectifs ne sont pas étudiés ici.
+
+# Droits d'auteur et licence
+
+© 2018 DINSIC, Marion Paclot
+
+Les données et le code de ce dépôt sont publiées sous Licence Ouverte
+2.0, lisible dans le fichier LO.md de ce dépôt.
