@@ -3,11 +3,10 @@ server <- function(input, output, session) {
   observeEvent(TRUE, {
     showModal(modalDialog(
       title = "Message important",
-      "Projet d'explication du calcul de la taxe d'habitation.
-      Des erreurs peuvent subsister (calcul des abattements des syndicats et sur le plafonnement).
+      "Projet d'explication du calcul de la taxe d'habitation 2017.
+      Des erreurs peuvent subsister (calcul du plafonnement et majoration communale sur les résidences secondaires).
       La valeur figurant sur votre avis d'imposition est celle qui fait foi.",
       easyClose = TRUE
-      
     ))})
     
     
