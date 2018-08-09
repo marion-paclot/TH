@@ -13,4 +13,4 @@ L'éléments de fiscalité relatifs au lieu d'habitation se trouvent dans le fic
 Pour 2017, on dispose des quotités (montants) ce qui suffit à faire le calcul des abattements pour l'année 2017. En revanche, dans le cas d'un plafonnement, un double mécanisme de compensation entre Etat et collectivités territoriales se met en marche et nécessite l'utilisation des valeurs 2000 et 2003 (2014 pour Mayotte)
 
 Des erreurs, notamment sur des cas particuliers peuvent subsister, l'ensemble des règles relatives à la taxe d'habitation étant très complexes. 
-Enfin, le cas modélisé par l'application reste le cas "classique" d'un ménage. Les cas spécifique d'hébergement collectifs ne sont pas étudiés ici.
+Enfin, le cas modélisé par l'application reste le cas "classique" d'un ménage. Les cas spécifiques d'hébergement collectifs ne sont pas étudiés ici.
