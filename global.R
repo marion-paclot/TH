@@ -11,7 +11,9 @@ options(shiny.reactlog = T, stringsAsFactors = FALSE)
 # Fichier de recensement des éléments d'imposition à la fiscalité directe locale
 # Seule les colonnes relatives à la TH ont été conservées
 rei = read.csv2('REI_TH.csv', fileEncoding = 'UTF-8')
+rei = subset(rei, ! LIBCOM %in% c("SAINT-BARTHELEMY", "SAINT-MARTIN"))
 url_rei = "https://www.data.gouv.fr/fr/datasets/impots-locaux-fichier-de-recensement-des-elements-dimposition-a-la-fiscalite-directe-locale-rei-3/"
+dep = unique(rei$LIBDEP)
 
 # Seuil d'éligibilité du CGI
 grille_1417_1_CGI = read.csv2('seuils_1417-1-CGI.csv', fileEncoding = 'UTF-8')
@@ -27,7 +29,7 @@ url_1414 = "https://www.legifrance.gouv.fr/affichCodeArticle.do?cidTexte=LEGITEX
 # Tooltip d'explication
 tooltipVeuf = "Veuf ou veuve, sans condition d\\'\\âge"
 tooltipSenior = "Plus de 60 ans"
-tooltipHandicape = "Une personne du foyer doit \\être dans la situation suivante \\: 
+tooltipHandicape = "Au moins une personne du foyer doit \\être dans la situation suivante \\: 
 b\\én\\éficiaire de l\\'ASI ou de l\\'AAH, 
 atteint d\\'une infirmit\\é ou invalidit\\é l\\'emp\\êchant de subvenir par son travail aux n\\écessit\\és de l\\'existence,
 titulaire d\\'une carte mobilit\\é inclusion avec la mention invalidit\\é.

@@ -3,8 +3,7 @@ server <- function(input, output, session) {
   observeEvent(TRUE, {
     showModal(modalDialog(
       title = "Message important",
-      "Cette application doit permettre à un grand nombre de contribuables de comprendre le calcul
-      de leur propre taxe d'habitation.
+      "Cette application permet aux contribuables de comprendre le calcul de leur propre taxe d'habitation.
       Des erreurs peuvent subsister (calcul du plafonnement et majoration communale sur les résidences secondaires).
       La valeur figurant sur votre avis d'imposition est celle qui fait foi.",
       easyClose = TRUE
@@ -26,6 +25,15 @@ server <- function(input, output, session) {
 
     nbPAC[is.na(nbPAC)] = 1
     nbParts[is.na(nbParts)] = 0
+    
+    # Figer le nom du département jusqu'à ce qu'un département existant soit choisi
+    if (nomDep %in% dep){
+      stockageDep <<- nomDep
+    }
+    if (! nomDep %in% dep) {
+      nomDep = stockageDep
+    }
+    
     
     # Figer le nom de la commune tant qu'elle n'est pas choisie
     if (nomCom == '') {
