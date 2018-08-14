@@ -13,6 +13,7 @@ navbarPage(
                    step = 1),
       
       checkboxInput('isf', "ISF", value = FALSE),
+      
       checkboxGroupInput(
         'alloc',
         'Bénéficiaire de ces allocations',
@@ -21,10 +22,14 @@ navbarPage(
       ),
       checkboxGroupInput(
         'situation',
-        'Situation personnelle',
+        'Situation personnelle au 1er janvier 2017',
         choices = c('Veuf', 'Senior', 'Handicapé'),
         inline = TRUE
       ),
+      groupTooltip(id = "situation", choice = "Veuf", title = tooltipVeuf, trigger = "hover"),
+      groupTooltip(id = "situation", choice = "Senior", title = tooltipSenior, trigger = "hover"),
+      groupTooltip(id = "situation", choice = "Handicapé", title = tooltipHandicape, trigger = "hover"),
+      
 
       div(
         style = "display:inline-block",

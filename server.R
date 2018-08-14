@@ -3,7 +3,8 @@ server <- function(input, output, session) {
   observeEvent(TRUE, {
     showModal(modalDialog(
       title = "Message important",
-      "Projet d'explication du calcul de la taxe d'habitation 2017.
+      "Cette application doit permettre à un grand nombre de contribuables de comprendre le calcul
+      de leur propre taxe d'habitation.
       Des erreurs peuvent subsister (calcul du plafonnement et majoration communale sur les résidences secondaires).
       La valeur figurant sur votre avis d'imposition est celle qui fait foi.",
       easyClose = TRUE
@@ -283,15 +284,22 @@ server <- function(input, output, session) {
       
       # Adaptation des explications :
       explications[1] = ifelse(abattements[1] > 0,
-        "La collectivité territoriale a voté un abattement qui s'applique à l'ensemble des foyers.",
+        "La collectivité a voté un abattement qui s'applique à l'ensemble des foyers.",
         "La collectivité n'a pas voté d'abattement général à la base.")
-      explications[2] = "Abattement pour chacune des deux premières personnes à charge."
-      explications[3] = "Abattement pour chaque personne à charge, au delà de 2."
-      explications[4] = sprintf("Abattement sous conditions : votre rfr ne doit pas dépasser %s€ et
-                                la valeur locative de votre bien ne doit pas excéder %s€.", 
-                                seuils()$art1417_2, vlMax)
-      explications[5] = "Abatement applicable aux foyers dans lesquels une personne est 
-      en situation de handicap, bénéficiaire de l'ASI ou de l'AAH"
+      explications[2] = ifelse(abattements[2] > 0,
+                               "Abattement pour chacune des deux premières personnes à charge.",
+                               "La collectivité n'a pas voté d'abattement pour les deux premières personnes à charge.")
+      explications[3] = ifelse(abattements[3] > 0,
+                               "Abattement pour chaque personne à charge, au delà de 2.",
+                               "La collectivité n'a pas voté d'abattement pour les personnes à charge au delà de 2.")
+      explications[4] = ifelse(abattements[4] > 0,
+                               sprintf("Abattement sous conditions : votre rfr ne doit pas dépasser %s€ et
+                                la valeur locative de votre bien ne doit pas excéder %s€.", seuils()$art1417_2, vlMax),
+                               "La collectivité n'a pas voté d'abattement en faveur des personnes de condition modeste.")
+
+      explications[5] = ifelse(abattements[5] > 0,
+                               "Abattement applicable aux foyers dans lesquels une personne est en situation de handicap, bénéficiaire de l'ASI ou de l'AAH.",
+                               "La collectivité n'a pas voté d'abattement en faveur des personnes handicapées ou invalides.")
 
       detailAbattements = data.frame(Abattements = euro(abattements),
                                Multiplicateur = paste('x', multiplicateur),

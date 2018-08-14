@@ -23,6 +23,16 @@ grille_1414_A1_CGI = read.csv2('seuils_1414-A-1-CGI.csv', fileEncoding = 'UTF-8'
 url_1417 = "https://www.legifrance.gouv.fr/affichCodeArticle.do?idArticle=LEGIARTI000027517723&cidTexte=LEGITEXT000006069577"
 url_1414 = "https://www.legifrance.gouv.fr/affichCodeArticle.do?cidTexte=LEGITEXT000006069577&idArticle=LEGIARTI000037100266&dateTexte=&categorieLien=id"
 
+###################################################
+# Tooltip d'explication
+tooltipVeuf = "Veuf ou veuve, sans condition d\\'\\âge"
+tooltipSenior = "Plus de 60 ans"
+tooltipHandicape = "Une personne du foyer doit \\être dans la situation suivante \\: 
+b\\én\\éficiaire de l\\'ASI ou de l\\'AAH, 
+atteint d\\'une infirmit\\é ou invalidit\\é l\\'emp\\êchant de subvenir par son travail aux n\\écessit\\és de l\\'existence,
+titulaire d\\'une carte mobilit\\é inclusion avec la mention invalidit\\é.
+Pour b\\én\\éficier de ce statut, la demande doit avoir \\ét\\é adress\\ée avant le 1er janvier de l\\'ann\\ée concern\\ée."
+tooltipHandicape = gsub('\n', ' ', tooltipHandicape)
 
 ################################################### 
 # Valeurs d'abattements pour une collectivité territoriale.
@@ -374,4 +384,27 @@ cascade_abattements = function(vlBrute, abattements, multiplicateur){
   g = ggplotly(g, tooltip = c('text'))
   g = hide_legend(g)
   return(g)
+}
+
+
+## Fonction pour le tooltip d'un groupInput
+# https://stackoverflow.com/questions/36132204/reactive-radiobuttons-with-tooltipbs-in-shiny
+groupTooltip <- function(id, choice, title, placement = "bottom", trigger = "hover", options = NULL){
+  
+  options = shinyBS:::buildTooltipOrPopoverOptionsList(title, placement, trigger, options)
+  options = paste0("{'", paste(names(options), options, sep = "': '", collapse = "', '"), "'}")
+  bsTag <- shiny::tags$script(shiny::HTML(paste0("
+    $(document).ready(function() {
+      setTimeout(function() {
+        $('input', $('#", id, "')).each(function(){
+          if(this.getAttribute('value') == '", choice, "') {
+            opts = $.extend(", options, ", {html: true});
+            $(this.parentElement).tooltip('destroy');
+            $(this.parentElement).tooltip(opts);
+          }
+        })
+      }, 500)
+    });
+  ")))
+  htmltools::attachDependencies(bsTag, shinyBS:::shinyBSDep)
 }
