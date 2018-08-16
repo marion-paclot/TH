@@ -5,37 +5,46 @@ navbarPage(
     sidebarPanel(
       width = 4,
       id = "form",
-      
-      numericInput('rfr', 
-                   label = 'Revenu fiscal de référence',
-                   value = 0,
-                   min = 0,
-                   step = 1),
-      
+      div(
+        style = "display:inline-block;",
+        numericInput('rfr', 
+                     label = 'Revenu fiscal de référence',
+                     value = 0,
+                     min = 0,
+                     step = 1)
+      ),
       checkboxInput('isf', "ISF", value = FALSE),
-      
+      bsTooltip(
+        id = "isf",
+        title = tooltipIsf,
+        trigger = "hover",
+        placement = 'right'
+      ),
       checkboxGroupInput(
         'alloc',
         'Bénéficiaire de ces allocations',
         choices = c('ASPA', 'ASI', 'AAH'),
         inline = TRUE
       ),
+      groupTooltip(id = "alloc", choice = "AAH", title = tooltipAah, trigger = "hover"),
+      
       checkboxGroupInput(
         'situation',
         'Situation personnelle au 1er janvier 2017',
-        choices = c('Veuf', 'Senior', 'Handicapé'),
+        choices = c('Veuf', 'Senior', 'Handicapé', 'Indigent'),
         inline = TRUE
       ),
       groupTooltip(id = "situation", choice = "Veuf", title = tooltipVeuf, trigger = "hover"),
       groupTooltip(id = "situation", choice = "Senior", title = tooltipSenior, trigger = "hover"),
       groupTooltip(id = "situation", choice = "Handicapé", title = tooltipHandicape, trigger = "hover"),
-      
+      groupTooltip(id = "situation", choice = "Indigent", title = tooltipIndigent, trigger = "hover"),
 
+      
       div(
         style = "display:inline-block",
         numericInput(
           'nbParts',
-          '# parts fiscales',
+          'Nombre de parts fiscales',
           1,
           min = 1,
           max = 99,
@@ -44,15 +53,14 @@ navbarPage(
       ),
       bsTooltip(
         id = "nbParts",
-        title = "Nombre de parts fiscales sur la déclaration de revenu",
-        placement = "right",
+        title = "Nombre de parts fiscales du ménage",
         trigger = "hover"
       ),
       div(
-        style = "display:inline-block",
+        style = "display:inline-block ; margin-left: 20px;",
         numericInput(
           'nbPAC',
-          '# PAC',
+          'Nombre de personnes à charge',
           0,
           min = 0,
           max = 99,
@@ -61,7 +69,7 @@ navbarPage(
       ),
       bsTooltip(
         id = "nbPAC",
-        title = tooltip_PAC,
+        title = tooltipPac,
         placement = "right",
         trigger = "hover"
       ),
@@ -93,10 +101,12 @@ navbarPage(
         )
       ),
       div(
-        style = "display:inline-block",
+        style = "display:inline-block; margin-left: 20px;",
         radioButtons("residence", "Résidence",
                      c("Principale" = "principale",
-                       "Secondaire" = "secondaire"),inline = F)
+                       "Secondaire" = "secondaire", 
+                       "Dépendance résidence principale" = "dépendance princ",
+                       "Logement vacant" = 'vacant'),inline = T)
       )
       
      

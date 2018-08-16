@@ -33,8 +33,26 @@ tooltipHandicape = "Au moins une personne du foyer doit \\être dans la situatio
 b\\én\\éficiaire de l\\'ASI ou de l\\'AAH, 
 atteint d\\'une infirmit\\é ou invalidit\\é l\\'emp\\êchant de subvenir par son travail aux n\\écessit\\és de l\\'existence,
 titulaire d\\'une carte mobilit\\é inclusion avec la mention invalidit\\é.
-Pour b\\én\\éficier de ce statut, la demande doit avoir \\ét\\é adress\\ée avant le 1er janvier de l\\'ann\\ée concern\\ée."
+Pour b\\én\\éficier de ce statut, la demande doit avoir \\ét\\é adress\\ée avant le 1er janvier de l\\'ann\\ée concern\\ée"
 tooltipHandicape = gsub('\n', ' ', tooltipHandicape)
+
+tooltipIndigent = "Personnes physiques reconnues indigentes par la commission 
+communale des imp\\ôts direct apr\\ès avis conforme du repr\\ésentant du service des imp\\ôts"
+tooltipIndigent = gsub('\n', ' ', tooltipIndigent)
+
+tooltipPac = "Les enfants du contribuable ou ceux qu\\'il a recueillis, 
+c\\'est-\\à-dire qui sont pris en compte dans le foyer fiscal pour le calcul 
+de l\\'imp\\ôt sur le revenu au titre de l\\'année N-1 ;
+les ascendants du contribuable \\âg\\és de plus de 70 ans ou infirmes 
+quel que soit leur \\âge, r\\ésidant avec le contribuable et remplissant 
+la condition de revenus (montant de leur revenu fiscal de r\\éf\\érence (RFR) 
+de l\\’année pr\\éc\\édente n\\’excédant pas la limite pr\\évue à l\\’article 1417-I du CGI)"
+tooltipPac = gsub('\n', ' ', tooltipPac)
+
+tooltipIsf = "Imp\\ôt de solidarit\\é sur la fortune pay\\é au titre de l\\'ann\\ée 2016"
+tooltipAah = "B\\én\\éficiaire de l\\'allocation adulte handicap\\é. 
+<br>Cas \\équivalent \\: vous \\êtes infirme ou invalide et ne pouvez subvenir par votre travail aux n\\écessit\\és de l\\'existence."
+tooltipAah = gsub('\n', ' ', tooltipAah)
 
 ################################################### 
 # Valeurs d'abattements pour une collectivité territoriale.
@@ -71,18 +89,6 @@ tauxResidenceSecondaire = list(commune = 0.015,
 
 # Fixé arbitrairement en attendant les vraies valeurs
 tauxMajorationResidenceSecondaire = 0.015
-
-
-############ TOOLTIP
-tooltip_PAC = "les enfants du contribuable ou ceux qu'il a recueillis, 
-c'est-à-dire qui sont pris en compte dans le foyer fiscal pour le calcul 
-de l'impôt sur le revenu au titre de l'année N-1 ;
-les ascendants du contribuable âgés de plus de 70 ans ou infirmes 
-quel que soit leur âge, résidant avec le contribuable et remplissant 
-la condition de revenus (montant de leur revenu fiscal de référence (RFR) 
-de l’année précédente n’excédant pas la limite prévue à l’article 1417-I du CGI)"
-
-
 
 
 ######## FONCTIONS
@@ -167,7 +173,7 @@ extraire_abattements = function(reiCommune, nomCol, typeRes){
   abattements = round2(abattements, 0)
   
   # Résidence secondaire --> Abattements non applicables
-  if (typeRes == 'secondaire'){
+  if (typeRes != 'principale'){
     abattements = data.frame(ifelse(abattements>0, 0, 0))
   }
   colnames(abattements) = c('commune', 'syndicat', 'interco', 'TSE', 'GEMAPI')
@@ -197,39 +203,40 @@ calculer_taux_cotisation = function(colTaux, reiCom){
   return(valeur)
 }
 
-calculer_taux_gestion = function(typeResidence, taux){
+calculer_taux_gestion = function(typeRes, taux){
+  typeRes = ifelse(typeRes == "dépendance princ", 'principale', typeRes)
   residencePS = c('principale', 'secondaire')
-  valeur = sapply(taux,function(x) x[match(typeResidence, residencePS)])
+  valeur = sapply(taux,function(x) x[match(typeRes, residencePS)])
   valeur = as.numeric(valeur)
   return(valeur)
 }
 
-calculer_taux_base_elevee = function(typeResidence, vlNette){
+calculer_taux_base_elevee = function(typeRes, vlNette){
   tauxCommune = 0
-  if (typeResidence == 'principale' & vlNette[1] > 4573){
+  typeRes = ifelse(typeRes == "dépendance princ", 'principale', typeRes)
+  if (typeRes == 'principale' & vlNette[1] > 4573){
     tauxCommune = 0.002
   }
-  if (typeResidence == 'secondaire' & vlNette[1] > 4573 & vlNette[1] <= 7622){
+  if (typeRes == 'secondaire' & vlNette[1] > 4573 & vlNette[1] <= 7622){
     tauxCommune = 0.012
   }
-  if (typeResidence == 'secondaire' & vlNette[1] > 7622){
+  if (typeRes == 'secondaire' & vlNette[1] > 7622){
     tauxCommune = 0.017
   }
   return(c(tauxCommune, 0, 0, 0, 0))
 }
 
-calculer_taux_residence_secondaire = function(typeResidence){
-  return(ifelse(typeResidence == "secondaire", c(0.015, 0.015, 0, 0, 0), rep(0,5)))
+calculer_taux_residence_secondaire = function(typeRes){
+  return(ifelse(typeRes == "secondaire", c(0.015, 0.015, 0, 0, 0), rep(0,5)))
 }
 
 
 
 calculer_plafonnement = function(rfr, zoneGeo, isf, nbParts, typeRes){
-  if (isf |typeRes == 'secondaire'){
+  if (isf | typeRes == 'secondaire' | rfr > calculer_seuil(grille_1417_2_CGI, zoneGeo, 2017, nbParts)){
     return(NA)
   }
-  seuil = calculer_seuil(grille_1417_2_CGI, zoneGeo, 2017, nbParts)
-  abattement = ifelse(isf | rfr > seuil, 0, calculer_seuil(grille_1414_A1_CGI, zoneGeo, 2017, nbParts))
+  abattement = calculer_seuil(grille_1414_A1_CGI, zoneGeo, 2017, nbParts)
   
   th_max = round2(max(0,0.0344*(rfr - abattement)),0)
   return(th_max)

@@ -27,14 +27,10 @@ server <- function(input, output, session) {
     nbParts[is.na(nbParts)] = 0
     
     # Figer le nom du département jusqu'à ce qu'un département existant soit choisi
-    if (nomDep %in% dep){
-      stockageDep <<- nomDep
-    }
-    if (! nomDep %in% dep) {
-      nomDep = stockageDep
-    }
-    
-    
+    # Création d'une variable qui prend la précédente valeur correcte. Initialisation à l'ouverture de l'app
+    stockageDep <<- ifelse(nomDep %in% dep, nomDep, stockageDep)
+    nomDep = ifelse(nomDep %in% dep, nomDep, stockageDep)
+
     # Figer le nom de la commune tant qu'elle n'est pas choisie
     if (nomCom == '') {
       nomCom = rei$LIBCOM[rei$LIBDEP == nomDep][1]
@@ -106,6 +102,7 @@ server <- function(input, output, session) {
     
     # Situation d'exonération totale
     exoDOM = exo_logement_modeste_DOM(entree()$zoneGeo, entree()$vlBrute, entree()$reiCom)
+    exoIndigent = 'Indigent' %in% input$situation
     exoAspaAsi = any(c('ASPA', 'ASI') %in% input$alloc)
     exoAAH = 'AAH' %in% input$alloc & exoneration_1417_1
     exoAahRejet = 'AAH' %in% input$alloc & ! exoneration_1417_1
@@ -113,9 +110,10 @@ server <- function(input, output, session) {
     exoVeufSeniorRejetIsf = any(c('Veuf', 'Senior') %in% input$situation) & input$isf
     exoVeufSeniorRejetSeuil = any(c('Veuf', 'Senior') %in% input$situation) & !exoneration_1417_1 
     
-    assujeti = !any(exoDOM | exoAspaAsi | exoAAH | exoVeufSenior)
+    assujeti = !any(exoDOM | exoIndigent| exoAspaAsi | exoAAH | exoVeufSenior)
     
     return(list(exoDOM = exoDOM, 
+                exoIndigent = exoIndigent,
                 exoAspaAsi = exoAspaAsi, 
                 exoAAH = exoAAH,
                 exoVeufSenior = exoVeufSenior,
@@ -148,6 +146,9 @@ server <- function(input, output, session) {
     de votre logement est inférieure à 40% de la valeur locative moyenne de la commune.
     <br>Vous êtes exonéré de TH au titre de l'article 332 de l'annexe II du CGI."
     
+    phraseExoIndigent = "La commission communale des impôts directs vous a reconnu indigent.
+    <br>Vous êtes exonéré de TH au titre de l'article 1408-II-3° du CGI."
+    
     phraseExoAspaAsi = "Vous percevez l'ASPA ou l'ASI. Aucune condition de revenu n'est requise.
     <br>Vous êtes exonéré de TH au titre de l'article 1417-I du CGI."
     
@@ -170,6 +171,7 @@ server <- function(input, output, session) {
     phrase = ifelse(exonerations()$exoDOM, phraseExoDom, NA)
     phrase = ifelse(exonerations()$exoAspaAsi, phraseExoAspaAsi, phrase)
     phrase = ifelse(exonerations()$exoAAH, phraseExoAah, phrase)
+    phrase = ifelse(exonerations()$exoIndigent, phraseExoIndigent, phrase)
     
     phrase = ifelse(exonerations()$exoAahRejet  & is.na(phrase), phraseExoAahRejet, phrase)
     phrase = ifelse(exonerations()$exoVeufSeniorRejetIsf  & is.na(phrase), phraseExoSeniorRejetIsf, phrase)
@@ -220,9 +222,19 @@ server <- function(input, output, session) {
     rownames(plafonnement) = c('Total avant plafonnement', 'Plafond', 'Dégrèvement')
     plafonnement$Explication[1] = "Somme des cotisations, frais de gestion, prélèvements pour
     base élevée et résidence secondaire."
-    plafonnement$Explication[2] = "Montant établi en fonction du rfr, du nombre de parts fiscale, 
-    de la zone géographique, sous réserve de ne pas avoir payé l'ISF et qu'il s'agisse d'une résidence
-    principale."
+    plafonnement$Explication[2] = "Montant établi en fonction du rfr, du nombre de parts fiscales, 
+    et de la zone géographique, sous réserve de ne pas dépasser un certain revenu, de ne pas être assujetti
+    à l'ISF et qu'il s'agisse d'une résidence principale"
+    if (input$residence == 'secondaire') {
+      plafonnement$Explication[2] = "Il n'y a pas de plafonnement pour les résidences secondaires"
+    }
+    if (input$isf) {
+      plafonnement$Explication[2] = "Il n'y a pas de plafonnement pour les ménages ayant payé l'ISF"
+    }
+    if (entree()$rfr > seuils()$art1417_2) {
+      plafonnement$Explication[2] = sprintf("Votre revenu excèdant le seuil de %s€, vous n'avez pas le droit à un abattement", seuils()$art1417_2)
+    }
+
     plafonnement$Explication[3] = "Réduction de la TH si le montant total excède le plafond calculé ci-dessus.
     Si ce dégrèvement est inférieur à 8€, il n'est pas appliqué."
     
