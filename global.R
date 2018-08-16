@@ -88,7 +88,7 @@ tauxResidenceSecondaire = list(commune = 0.015,
                                GEMAPI = 0)
 
 # Fixé arbitrairement en attendant les vraies valeurs
-tauxMajorationResidenceSecondaire = 0.015
+tauxMajorationResidenceSecondaire = 0.0
 
 
 ######## FONCTIONS
@@ -316,7 +316,12 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
     "Taux de cotisation pour résidence secondaire" = paste0(100*tauxResSecondaire, '%'), 
     "Frais de cotisation pour résidence secondaire" = euro(cotisationsResSecondaire)
     )
+  tauxNul = which(tauxCotisation == 0)
+  for (i in tauxNul){
+    detailCalcul[i, c(1:3)] = ''
+  }
   detailCalcul = t(detailCalcul)
+
   rownames(detailCalcul) = gsub('\\.', ' ', rownames(detailCalcul))
 
   return(list(detailCalcul = detailCalcul,
