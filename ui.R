@@ -165,7 +165,11 @@ navbarPage(
           tags$span("Trouver les textes de loi ...")),
   footer = column(
     12,
-    tags$i("Module développé par Marion")
+    tags$i("Module développé par Marion"),
+    tags$br(),
+    tags$a(href = 'https://github.com/marion-paclot/TH/', 'Voir le code source'),
+    tags$br(),
+    tags$a(href = 'https://github.com/marion-paclot/TH/issues', 'Signaler une erreur ou proposer une amélioration')
     # tags$a(href = 'https://www.etalab.gouv.fr/fr/', 'Etalab')
   )
 )
