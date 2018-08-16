@@ -317,9 +317,8 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
     "Frais de cotisation pour résidence secondaire" = euro(cotisationsResSecondaire)
     )
   
-  # Si les cotisations sont à 0%, on n'affiche pas les 3 premières lignes
-  tauxNul = which(tauxCotisation == 0)
-  for (i in tauxNul){
+  # Si les cotisations sont à 0%, on n'affiche pas les 3 premières lignes 
+  for (i in which(tauxCotisation == 0)){
     detailCalcul[i, c(1:3)] = ''
   }
   detailCalcul = t(detailCalcul)
