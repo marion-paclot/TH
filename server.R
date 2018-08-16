@@ -22,6 +22,7 @@ server <- function(input, output, session) {
 
     rfr = input$rfr
     rfr[is.na(rfr)] = 0
+    rfr = ifelse(input$rfrAbsent, 100000000, rfr) # Cas d'un rfr à blanc sur l'avis de TH.
 
     nbPAC[is.na(nbPAC)] = 1
     nbParts[is.na(nbParts)] = 0

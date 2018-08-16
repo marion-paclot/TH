@@ -13,13 +13,22 @@ navbarPage(
                      min = 0,
                      step = 1)
       ),
+      div(
+        style = "display:inline-block;",
+        checkboxInput('rfrAbsent', "Pas de RFR", value = FALSE),
+        bsTooltip(
+          id = "rfrAbsent",
+          title = "Le RFR est \\à blanc sur l\\'avis d\\'imposition",
+          trigger = "hover"
+        )
+      ),
+      
       checkboxInput('isf', "ISF", value = FALSE),
       bsTooltip(
         id = "isf",
         title = tooltipIsf,
-        trigger = "hover",
-        placement = 'right'
-      ),
+        trigger = "hover"
+        ),
       checkboxGroupInput(
         'alloc',
         'Bénéficiaire de ces allocations',
