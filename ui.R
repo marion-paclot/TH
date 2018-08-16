@@ -165,7 +165,7 @@ navbarPage(
           tags$span("Trouver les textes de loi ...")),
   footer = column(
     12,
-    tags$i("Module développé par "),
-    tags$a(href = 'https://www.etalab.gouv.fr/fr/', 'Etalab')
+    tags$i("Module développé par Marion")
+    # tags$a(href = 'https://www.etalab.gouv.fr/fr/', 'Etalab')
   )
 )
