@@ -43,6 +43,9 @@ server <- function(input, output, session) {
     codeCom = subset(rei, LIBDEP == nomDep & LIBCOM == nomCom)$IDCOM
     reiCom = subset(rei, IDCOM == codeCom)
 
+    # Taxe d'habitation sur les logements vacants
+    tlv = reiCom$COMTLV == 1
+    cat('\nTHLV : ', tlv)
     
     ## Zone géographique
     zoneGeo = "Métropole"
@@ -56,7 +59,8 @@ server <- function(input, output, session) {
                 codeCom = codeCom,
                 reiCom = reiCom,
                 vlBrute = vlBrute,
-                rfr = rfr))
+                rfr = rfr,
+                tlv = tlv))
 
   }) 
   
@@ -111,7 +115,8 @@ server <- function(input, output, session) {
     exoVeufSeniorRejetIsf = any(c('Veuf', 'Senior') %in% input$situation) & input$isf
     exoVeufSeniorRejetSeuil = any(c('Veuf', 'Senior') %in% input$situation) & !exoneration_1417_1 
     
-    assujeti = !any(exoDOM | exoIndigent| exoAspaAsi | exoAAH | exoVeufSenior)
+    lvExonere = entree()$tlv & input$residence == 'vacant'
+    assujetti = !any(exoDOM | exoIndigent| exoAspaAsi | exoAAH | exoVeufSenior | lvExonere)
     
     return(list(exoDOM = exoDOM, 
                 exoIndigent = exoIndigent,
@@ -121,13 +126,14 @@ server <- function(input, output, session) {
                 exoAahRejet = exoAahRejet,
                 exoVeufSeniorRejetIsf = exoVeufSeniorRejetIsf,
                 exoVeufSeniorRejetSeuil = exoVeufSeniorRejetSeuil,
-                assujeti = assujeti))
+                assujetti = assujetti))
   })
   
-  output$assujeti <- reactive({
-    exonerations()$assujeti
+
+  output$assujetti <- reactive({
+    exonerations()$assujetti
   })
-  outputOptions(output, "assujeti", suspendWhenHidden = FALSE)
+  outputOptions(output, "assujetti", suspendWhenHidden = FALSE)
   
   output$exoneration <- renderText({
     
@@ -182,6 +188,13 @@ server <- function(input, output, session) {
     if (is.na(phrase)){
       phrase = "Votre situation personnelle ne vous permet pas d'être exonéré 
       de TH au titre de l'article 1417-I du CGI."
+    }
+    
+    # Cas des logements vacants
+    if (input$residence == 'vacant'){
+      phrase = ifelse(entree()$tlv, "Pour les logements vacants, votre commune a opté pour une taxe spécifique
+                    qui remplace la taxe d'habitation.",
+                      "Votre logement est vacant, mais la taxe d'habitation est due.")
     }
     
     phrase = gsub("\n|\\s+", ' ', phrase)
@@ -286,60 +299,68 @@ server <- function(input, output, session) {
     return(phrase)
   })
   
-  output$vlNette_secondaire <- renderText({
-    phrase = "Cette habitation est une résidence secondaire. Vous ne bénéficiez donc pas d'abattement.
-    La valeur locative nette ou base nette d'imposition est alors égale à la valeur locative brute du bien."
+  output$pas_d_abattement <- renderText({
+    typeRes = input$residence
+    typeRes = ifelse(typeRes == 'secondaire', 'une résidence secondaire', typeRes)
+    typeRes = ifelse(typeRes == 'vacant', 'un logement vacant', typeRes)
+    typeRes = ifelse(typeRes == 'dépendance princ', 'une dépendance de votre résidence principale', typeRes)
+
+    phrase = sprintf("Cette habitation est %s. Vous ne bénéficiez donc pas d'abattement.
+    <br>La valeur locative nette ou base nette d'imposition est alors égale à la valeur 
+                     locative brute du bien.", typeRes)
+    phrase = gsub("\n|\\s+", ' ', phrase)
+    phrase = gsub("<br>", '\n', phrase)
     return(phrase)
   })
   
-    output$abattements <- DT::renderDataTable({
+  output$abattements <- DT::renderDataTable({
+    ct = input$ab_gph
+    
+    vlMoyenne = entree()$reiCom[,as.character(colValeurLoc[ct])]
+    vlMax = round2((1.3 + entree()$nbPAC*0.1)*vlMoyenne,0)
+    
+    multiplicateur = unlist(calculTH()$multiplicateurs[ct])
+    abattements = unlist(calculTH()$abattements[ct])
+    explications = rep(NA, 5)
+
+    
+    # Adaptation des explications :
+    explications[1] = ifelse(abattements[1] > 0,
+      "La collectivité a voté un abattement qui s'applique à l'ensemble des foyers.",
+      "La collectivité n'a pas voté d'abattement général à la base.")
+    explications[2] = ifelse(abattements[2] > 0,
+                             "Abattement pour chacune des deux premières personnes à charge.",
+                             "La collectivité n'a pas voté d'abattement pour les deux premières personnes à charge.")
+    explications[3] = ifelse(abattements[3] > 0,
+                             "Abattement pour chaque personne à charge, au delà de 2.",
+                             "La collectivité n'a pas voté d'abattement pour les personnes à charge au delà de 2.")
+    explications[4] = ifelse(abattements[4] > 0,
+                             sprintf("Abattement sous conditions : votre rfr ne doit pas dépasser %s€ et
+                              la valeur locative de votre bien ne doit pas excéder %s€.", seuils()$art1417_2, vlMax),
+                             "La collectivité n'a pas voté d'abattement en faveur des personnes de condition modeste.")
+
+    explications[5] = ifelse(abattements[5] > 0,
+                             "Abattement applicable aux foyers dans lesquels une personne est en situation de handicap, bénéficiaire de l'ASI ou de l'AAH.",
+                             "La collectivité n'a pas voté d'abattement en faveur des personnes handicapées ou invalides.")
+
+    detailAbattements = data.frame(Abattements = euro(abattements),
+                             Multiplicateur = paste('x', multiplicateur),
+                             Explication = explications)
+    rownames(detailAbattements) = c("Général à la base", "PAC1-2", "PAC3", "Spécial", "Handicapé")
+    detailAbattements = datatable(detailAbattements, options = list(dom = 't'))
+
+    return(detailAbattements)
+  })
+  
+    output$cascadeAbattements = renderPlotly({
       ct = input$ab_gph
-      
-      vlMoyenne = entree()$reiCom[,as.character(colValeurLoc[ct])]
-      vlMax = round2((1.3 + entree()$nbPAC*0.1)*vlMoyenne,0)
-      
+
       multiplicateur = unlist(calculTH()$multiplicateurs[ct])
       abattements = unlist(calculTH()$abattements[ct])
-      explications = rep(NA, 5)
 
-      
-      # Adaptation des explications :
-      explications[1] = ifelse(abattements[1] > 0,
-        "La collectivité a voté un abattement qui s'applique à l'ensemble des foyers.",
-        "La collectivité n'a pas voté d'abattement général à la base.")
-      explications[2] = ifelse(abattements[2] > 0,
-                               "Abattement pour chacune des deux premières personnes à charge.",
-                               "La collectivité n'a pas voté d'abattement pour les deux premières personnes à charge.")
-      explications[3] = ifelse(abattements[3] > 0,
-                               "Abattement pour chaque personne à charge, au delà de 2.",
-                               "La collectivité n'a pas voté d'abattement pour les personnes à charge au delà de 2.")
-      explications[4] = ifelse(abattements[4] > 0,
-                               sprintf("Abattement sous conditions : votre rfr ne doit pas dépasser %s€ et
-                                la valeur locative de votre bien ne doit pas excéder %s€.", seuils()$art1417_2, vlMax),
-                               "La collectivité n'a pas voté d'abattement en faveur des personnes de condition modeste.")
-
-      explications[5] = ifelse(abattements[5] > 0,
-                               "Abattement applicable aux foyers dans lesquels une personne est en situation de handicap, bénéficiaire de l'ASI ou de l'AAH.",
-                               "La collectivité n'a pas voté d'abattement en faveur des personnes handicapées ou invalides.")
-
-      detailAbattements = data.frame(Abattements = euro(abattements),
-                               Multiplicateur = paste('x', multiplicateur),
-                               Explication = explications)
-      rownames(detailAbattements) = c("Général à la base", "PAC1-2", "PAC3", "Spécial", "Handicapé")
-      detailAbattements = datatable(detailAbattements, options = list(dom = 't'))
-
-      return(detailAbattements)
+      g = cascade_abattements(entree()$vlBrute, abattements, multiplicateur)
+      return(g)
     })
-    
-      output$cascadeAbattements = renderPlotly({
-        ct = input$ab_gph
-
-        multiplicateur = unlist(calculTH()$multiplicateurs[ct])
-        abattements = unlist(calculTH()$abattements[ct])
-
-        g = cascade_abattements(entree()$vlBrute, abattements, multiplicateur)
-        return(g)
-      })
       
   ########################### Onglet cotisation et frais de gestion
   output$cotisations = renderText({
@@ -349,6 +370,7 @@ server <- function(input, output, session) {
     phrase = gsub("<br>", '\n', phrase)
     return(phrase)
   })
+  
   output$cotisationsMajResSecondaire = renderText({
     phrase = "Dans le cas d'une résidence secondaire, une majoration allant de 
     5% à 60% peut être décidée par la commune. Ce calcul n'intègre pas cette 
@@ -358,9 +380,10 @@ server <- function(input, output, session) {
     phrase = gsub("<br>", '\n', phrase)
     return(phrase)
   })   
+  
   output$fraisGestion = renderText({
-    phrase = "Les frais de gestion sont calculés collectivité par collectivité, 
-    en multipliant le montant de cotisation par un taux spécifique à la collectivité. 
+    phrase = "Les frais de gestion sont calculésen multipliant la cotisation due à 
+    chaque collectivité par un taux qui lui est spécifique. 
     Les frais de gestion pour la commune et l'intercommunalité sont calculés en 
     sommant les montants de cotisation, avant d'appliquer le taux de 1% (résidence
     principale) ou 3% (résidence secondaire)."

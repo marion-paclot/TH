@@ -75,11 +75,12 @@ colTauxCotisations = list(commune = 'H12',
                           TSE = c('H52', 'H52A'),
                           GEMAPI = c('H52cGEMAPI', 'H52gGEMAPI'))
 
-tauxGestion = list(commune = c(0.01, 0.03),
-                   syndicat = c(0.08, 0.08),
-                   interco = c(0.01, 0.03),
-                   TSE = c(0.09,0.09),
-                   GEMAPI = c(0.03, 0.03))
+# Dans l'ordre : principal (+ dépendance), secondaire, vacant
+tauxGestion = list(commune = c(0.01, 0.03, 0.08),
+                   syndicat = c(0.08, 0.08, 0.08),
+                   interco = c(0.01, 0.03, 0.08),
+                   TSE = c(0.09,0.09, 0),
+                   GEMAPI = c(0.03, 0.03, 0.03))
 
 tauxResidenceSecondaire = list(commune = 0.015,
                                syndicat = 0.015,
@@ -205,7 +206,7 @@ calculer_taux_cotisation = function(colTaux, reiCom){
 
 calculer_taux_gestion = function(typeRes, taux){
   typeRes = ifelse(typeRes == "dépendance princ", 'principale', typeRes)
-  residencePS = c('principale', 'secondaire')
+  residencePS = c('principale', 'secondaire', 'vacant')
   valeur = sapply(taux,function(x) x[match(typeRes, residencePS)])
   valeur = as.numeric(valeur)
   return(valeur)
@@ -213,14 +214,13 @@ calculer_taux_gestion = function(typeRes, taux){
 
 calculer_taux_base_elevee = function(typeRes, vlNette){
   tauxCommune = 0
-  typeRes = ifelse(typeRes == "dépendance princ", 'principale', typeRes)
-  if (typeRes == 'principale' & vlNette[1] > 4573){
+  if (typeRes %in% c('principale', "dépendance princ") & vlNette[1] > 4573){
     tauxCommune = 0.002
   }
-  if (typeRes == 'secondaire' & vlNette[1] > 4573 & vlNette[1] <= 7622){
+  if (typeRes %in% c('secondaire', 'vacant') & vlNette[1] > 4573 & vlNette[1] <= 7622){
     tauxCommune = 0.012
   }
-  if (typeRes == 'secondaire' & vlNette[1] > 7622){
+  if (typeRes %in% c('secondaire', 'vacant') & vlNette[1] > 7622){
     tauxCommune = 0.017
   }
   return(c(tauxCommune, 0, 0, 0, 0))
@@ -277,17 +277,28 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
   # Frais de gestion
   # On doit calculer des v modifiée car le taux de 1% ou 3% s'applique au cumul 
   # des cotisation communes et interco
+  # Pour la taxe sur les logements vacants, somme des cotis comm interco et syndicale
   tauxFraisGestion = calculer_taux_gestion(typeRes, tauxGestion)
   
   # Attention les frais sont calculés différemment
   cotisations_modif = cotisations
-  cotisations_modif[1] = cotisations_modif[1] + cotisations_modif[3]
+  cotisations_modif[1] = ifelse (typeRes == 'vacant', 
+                                 sum(cotisations_modif[c(1:3)]),
+                                 sum(cotisations_modif[c(1,3)]))
+                              
   tauxFraisGestion_modif = tauxFraisGestion
   tauxFraisGestion_modif[3] = 0
+  tauxFraisGestion_modif[2] = ifelse (typeRes == 'vacant', 
+                                      0,
+                                      tauxFraisGestion_modif[2])
+  
   fraisGestion = calculer_prelevement(cotisations_modif, tauxFraisGestion_modif)
   
   fraisGestion_affichage = fraisGestion
-  fraisGestion_affichage[1] = paste("Com. + interco. =\n", fraisGestion_affichage[1])
+  fraisGestion_affichage[1] = ifelse (typeRes == 'vacant', 
+                                      paste("Com. + syndic. + interco. =\n", fraisGestion_affichage[1]),
+                                      paste("Com. + interco. =\n", fraisGestion_affichage[1]))
+  
   
   #####################
   
