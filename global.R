@@ -76,21 +76,20 @@ colTauxCotisations = list(commune = 'H12',
                           GEMAPI = c('H52cGEMAPI', 'H52gGEMAPI'))
 
 # Dans l'ordre : principal (+ dépendance), secondaire, vacant
-tauxGestion = list(commune = c(0.01, 0.03, 0.08),
-                   syndicat = c(0.08, 0.08, 0.08),
-                   interco = c(0.01, 0.03, 0.08),
-                   TSE = c(0.09,0.09, 0),
-                   GEMAPI = c(0.03, 0.03, 0.03))
+tauxGestion = list(commune = c(0.01, 0.01, 0.03, 0.08),
+                   syndicat = c(0.08, 0.08, 0.08, 0.08),
+                   interco = c(0.01, 0,0.1, 0.03, 0.08),
+                   TSE = c(0.09, 0.09, 0.09, 0),
+                   GEMAPI = c(0.03, 0.03, 0.03, 0.03))
 
 tauxResidenceSecondaire = list(commune = 0.015,
-                               syndicat = 0.015,
-                               interco = 0,
+                               syndicat = 0,
+                               interco = 0.015,
                                TSE = 0,
                                GEMAPI = 0)
 
 # Fixé arbitrairement en attendant les vraies valeurs
 tauxMajorationResidenceSecondaire = 0.0
-
 
 ######## FONCTIONS
 
@@ -102,6 +101,13 @@ round2 = function(x, n) {
   z = trunc(z)
   z = z/10^n
   z*posneg
+}
+
+# Enlever les retour à la ligne non souhaités et conserver les autres
+formatter_phrase = function(phrase){
+  phrase = gsub("\n|\\s+", ' ', phrase)
+  phrase = gsub("<br>", '\n', phrase)
+  return(phrase)
 }
 
 # Afficher € après un montant
@@ -126,6 +132,7 @@ calculer_seuil = function (grille, zone, annee, nombreParts) {
   valeurDemiPartMarginale = subset(referentiel, Parts == 0.5)$Seuil
   
   seuil = valeurPartsJusqua3 + demiPartsAuDela3 * valeurDemiPartMarginale
+  seuil = round2(seuil, 0)
   return(seuil)
 }
 
@@ -145,10 +152,10 @@ log = function (message) {
 
 ################################################################################
 # Fonctions pour le calcul étape par étape
- 
+
 calculer_multiplicateur = function(nbPAC, rfr, seuil, vlBrute, situation, 
                                    alloc, reiCommune){
-
+  
   vlMoyenne = reiCommune[,as.character(colValeurLoc)]
   general = 1
   PAC12 = min(2, nbPAC)
@@ -227,7 +234,11 @@ calculer_taux_base_elevee = function(typeRes, vlNette){
 }
 
 calculer_taux_residence_secondaire = function(typeRes){
-  return(ifelse(typeRes == "secondaire", c(0.015, 0.015, 0, 0, 0), rep(0,5)))
+  taux = rep(0,5)
+  if (typeRes == 'secondaire'){
+    taux = c(0.015, 0, 0.015, 0, 0)
+  }
+  return(taux)
 }
 
 
@@ -254,7 +265,7 @@ nomColAbattements = colAbattements
 
 ################################
 detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCommune,
-                            nomColAbattements, typeRes, zoneGeo, isf, nbParts){
+                            nomColAbattements, typeRes, zoneGeo, isf, nbParts, txMajRsCom){
   
   # Abattements 
   multiplicateurs = calculer_multiplicateur(nbPAC, rfr, seuil, vlBrute, 
@@ -265,6 +276,11 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
   
   # Cotisations par collectivité
   tauxCotisation = calculer_taux_cotisation(colTauxCotisations, reiCommune)
+  
+  # Ajout de la majoration résidence secondaire si la commune en a voté une
+  if (typeRes == 'secondaire'){
+    tauxCotisation[1] = tauxCotisation[1] + txMajRsCom/100
+  }
   cotisations = calculer_prelevement(basesNettes, tauxCotisation)
   
   # Modification pour la présentation des abattements : si tauxCotisation == 0, alors 0
@@ -273,7 +289,7 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
       abattements[,i] = rep(0,5)
     }
   }
-
+  
   # Frais de gestion
   # On doit calculer des v modifiée car le taux de 1% ou 3% s'applique au cumul 
   # des cotisation communes et interco
@@ -285,7 +301,7 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
   cotisations_modif[1] = ifelse (typeRes == 'vacant', 
                                  sum(cotisations_modif[c(1:3)]),
                                  sum(cotisations_modif[c(1,3)]))
-                              
+  
   tauxFraisGestion_modif = tauxFraisGestion
   tauxFraisGestion_modif[3] = 0
   tauxFraisGestion_modif[2] = ifelse (typeRes == 'vacant', 
@@ -308,11 +324,20 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
   
   # Prélèvement résidense secondaire
   tauxResSecondaire = calculer_taux_residence_secondaire(typeRes)
+  print(tauxResSecondaire)
+  basesNettes_modif = basesNettes
+  basesNettes_modif[1] = basesNettes_modif[1] + basesNettes_modif[3]
+  basesNettes_modif[3] = 0
   cotisationsResSecondaire = calculer_prelevement(basesNettes, tauxResSecondaire)
+  cotisationsResSecondaire_affichage = cotisationsResSecondaire
+  cotisationsResSecondaire_affichage[1] = ifelse (typeRes == 'secondaire', 
+                                      paste("Com. + interco. =\n", cotisationsResSecondaire_affichage[1]),
+                                      0)
+  
   
   # Plafonnement
   plafond = calculer_plafonnement(rfr, zoneGeo, isf, nbParts, typeRes)
-
+  
   # Boucle de nouveau calcul
   detailCalcul = data.frame(
     'Valeur locative brute' = euro2(vlBrute), 
@@ -325,8 +350,8 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
     "Taux de cotisation pour base élevée" = paste0(100*tauxBaseElevee, '%'), 
     "Cotisations pour base élevée" = euro(cotisationsBaseElevee),
     "Taux de cotisation pour résidence secondaire" = paste0(100*tauxResSecondaire, '%'), 
-    "Frais de cotisation pour résidence secondaire" = euro(cotisationsResSecondaire)
-    )
+    "Frais de cotisation pour résidence secondaire" = euro(cotisationsResSecondaire_affichage)
+  )
   
   # Si les cotisations sont à 0%, on n'affiche pas les 3 premières lignes 
   for (i in which(tauxCotisation == 0)){
@@ -334,7 +359,7 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
   }
   detailCalcul = t(detailCalcul)
   rownames(detailCalcul) = gsub('\\.', ' ', rownames(detailCalcul))
-
+  
   return(list(detailCalcul = detailCalcul,
               vlBrute = vlBrute, 
               multiplicateurs = multiplicateurs,
@@ -358,7 +383,7 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
 
 cascade_abattements = function(vlBrute, abattements, multiplicateur){
   nom_abattements = c('GAB', 'PAC1-2', 'PAC3+', 'Special', 'Handicape')
-
+  
   valeur = abattements*multiplicateur
   calcul = data.frame(
     etape = nom_abattements,
@@ -368,26 +393,26 @@ cascade_abattements = function(vlBrute, abattements, multiplicateur){
     start = c(vlBrute, vlBrute -cumsum(valeur[-length(valeur)])),
     end = c(vlBrute -cumsum(valeur)),
     type = 'abattement')
-
+  
   calcul_net = calcul
   calcul_net$type = 'net'
   calcul_net$end = pmax(calcul_net$end, 0)
   calcul_net$start = 0
-
+  
   calcul_vlb = data.frame(etape = 'Valeur locative brute', start = 0, end = vlBrute, type = 'total')
   calcul_vln = data.frame(etape = 'Base nette', start = 0, end = max(vlBrute-sum(valeur),0), type = 'total')
-
+  
   calcul = rbind.fill(calcul_vlb, calcul, calcul_net, calcul_vln)
   calcul$etape = factor(calcul$etape,levels = unique(calcul$etape))
   calcul$id = as.numeric(calcul$etape)
   calcul$type = factor(calcul$type, levels = c('abattement','net'))
-
+  
   calcul$tooltip = ifelse(calcul$type == "abattement",
                           paste(calcul$multiplicateur, 'x',calcul$abattements, '=', calcul$valeur, "€"),
                           paste('Valeur locative transitoire :', calcul$end, '€'))
   calcul$tooltip = ifelse(calcul$etape == "Valeur locative brute", paste('Valeur locative brute :', calcul$end, '€'), calcul$tooltip)
   calcul$tooltip = ifelse(calcul$etape == "Base nette", paste('Base nette :', calcul$end, '€'), calcul$tooltip)
-
+  
   # Graphique
   g = ggplot(calcul, aes(etape, fill = type)) +
     geom_rect(aes(x = etape, text = tooltip,
@@ -399,13 +424,13 @@ cascade_abattements = function(vlBrute, abattements, multiplicateur){
   if (max(calcul$end) == 0){
     g = g + scale_y_continuous(breaks = c(0,100))
   }
-
+  
   # Si abattements, affichage des valeurs
   if (any(valeur>0)){
     g = g + geom_text(data=subset(calcul, type == 'abattement' & valeur >0),
                       aes(x=id,y=(start+end)/2,label=paste('-',euro(start-end))))
   }
-
+  
   g = ggplotly(g, tooltip = c('text'))
   g = hide_legend(g)
   return(g)
@@ -419,17 +444,17 @@ groupTooltip <- function(id, choice, title, placement = "bottom", trigger = "hov
   options = shinyBS:::buildTooltipOrPopoverOptionsList(title, placement, trigger, options)
   options = paste0("{'", paste(names(options), options, sep = "': '", collapse = "', '"), "'}")
   bsTag <- shiny::tags$script(shiny::HTML(paste0("
-    $(document).ready(function() {
-      setTimeout(function() {
-        $('input', $('#", id, "')).each(function(){
-          if(this.getAttribute('value') == '", choice, "') {
-            opts = $.extend(", options, ", {html: true});
-            $(this.parentElement).tooltip('destroy');
-            $(this.parentElement).tooltip(opts);
-          }
-        })
-      }, 500)
-    });
-  ")))
+                                                 $(document).ready(function() {
+                                                 setTimeout(function() {
+                                                 $('input', $('#", id, "')).each(function(){
+                                                 if(this.getAttribute('value') == '", choice, "') {
+                                                 opts = $.extend(", options, ", {html: true});
+                                                 $(this.parentElement).tooltip('destroy');
+                                                 $(this.parentElement).tooltip(opts);
+                                                 }
+                                                 })
+                                                 }, 500)
+                                                 });
+                                                 ")))
   htmltools::attachDependencies(bsTag, shinyBS:::shinyBSDep)
 }

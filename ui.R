@@ -43,10 +43,22 @@ navbarPage(
         choices = c('Veuf', 'Senior', 'Handicapé', 'Indigent'),
         inline = TRUE
       ),
-      groupTooltip(id = "situation", choice = "Veuf", title = tooltipVeuf, trigger = "hover"),
-      groupTooltip(id = "situation", choice = "Senior", title = tooltipSenior, trigger = "hover"),
-      groupTooltip(id = "situation", choice = "Handicapé", title = tooltipHandicape, trigger = "hover"),
-      groupTooltip(id = "situation", choice = "Indigent", title = tooltipIndigent, trigger = "hover"),
+      groupTooltip(id = "situation", 
+                   choice = "Veuf", 
+                   title = tooltipVeuf, 
+                   trigger = "hover"),
+      groupTooltip(id = "situation", 
+                   choice = "Senior", 
+                   title = tooltipSenior, 
+                   trigger = "hover"),
+      groupTooltip(id = "situation", 
+                   choice = "Handicapé", 
+                   title = tooltipHandicape, 
+                   trigger = "hover"),
+      groupTooltip(id = "situation", 
+                   choice = "Indigent", 
+                   title = tooltipIndigent, 
+                   trigger = "hover"),
 
       
       div(
@@ -116,9 +128,14 @@ navbarPage(
                        "Secondaire" = "secondaire", 
                        "Dépendance résidence principale" = "dépendance princ",
                        "Logement vacant" = 'vacant'),inline = T)
+      ),
+      numericInput(
+        'tauxMajRsCommune',
+        'Taux de majoration résidence secondaire appliqué par la commune (en %)',
+        0,
+        min = 0,
+        step = 1
       )
-      
-     
     ),
     mainPanel(width = 8,
               tags$head(tags$style(HTML("pre { white-space: pre-wrap; word-break: keep-all; }"))),
@@ -142,6 +159,9 @@ navbarPage(
                                 verbatimTextOutput("vlNette")),
                conditionalPanel(condition = "input.residence != 'principale'", 
                                 verbatimTextOutput("pas_d_abattement")),
+               conditionalPanel(condition = "output.assujetti", dataTableOutput("calcul_baseNette")),
+               
+               br(),
                br(),
                conditionalPanel(condition = "output.assujetti && input.residence == 'principale'",
                                 radioButtons('ab_gph', "Element de calcul de la base d'imposition, détail des abattements",
@@ -156,18 +176,34 @@ navbarPage(
                                 plotlyOutput("cascadeAbattements"))
 
                ),
+      
+      ### Onglet cotisations, frais de gestion, 
       tabPanel('Cotisations et frais de gestion',
+               
+               # Cotisations
                br(),
-               h4('Cotisations'),
+               conditionalPanel(condition = "output.assujetti", h4('Cotisations')),
                conditionalPanel(condition = "output.assujetti", verbatimTextOutput("cotisations")),
-               conditionalPanel(condition = "output.assujetti && input.residence == 'secondaire'", 
-                                verbatimTextOutput("cotisationsMajResSecondaire")),
-               h4('Frais de gestion'),
+               conditionalPanel(condition = "output.assujetti", dataTableOutput("calcul_cotisation")),
+               
+               # Frais de gestion
+               conditionalPanel(condition = "output.assujetti", hr()),
+               conditionalPanel(condition = "output.assujetti", h4('Frais de gestion')),
                conditionalPanel(condition = "output.assujetti", verbatimTextOutput("fraisGestion")),
-               h4("Majoration résidence secondaire au profit de l'Etat")
-      ),
-      tabPanel('Plafonnement')
-      )
+               conditionalPanel(condition = "output.assujetti", dataTableOutput("calcul_fraisGestion")),
+               
+               # Majoration RS au profit de l'Etat
+               conditionalPanel(condition = "input.residence == 'secondaire'", hr()),
+               conditionalPanel(condition = "input.residence == 'secondaire'", 
+                                h4("Majoration résidence secondaire au profit de l'Etat")),
+               conditionalPanel(condition = "input.residence == 'secondaire'", 
+                                verbatimTextOutput("majorationRsEtat"))
+               # ,
+               # conditionalPanel(condition = "input.residence == 'secondaire'", 
+               #                  dataTableOutput("calcul_fraisGestion"))
+               
+               )
+     )
     )
   ),
   tabPanel("Aide",
