@@ -4,7 +4,7 @@ server <- function(input, output, session) {
     showModal(modalDialog(
       title = "Bienvenue",
       "Cette application permet aux contribuables de comprendre le calcul de leur propre taxe d'habitation.
-      Des erreurs peuvent subsister (calcul du plafonnement, majoration communale sur les résidences secondaires notamment).
+      Des erreurs peuvent subsister, notamment dans le calcul du plafonnement. Les cas particuliers (hébergements collectifs par exemple) ne sont pas gérés par cette application.
       La valeur figurant sur votre avis d'imposition est celle qui fait foi.",
       easyClose = TRUE
     ))})
@@ -79,14 +79,15 @@ server <- function(input, output, session) {
   
   #############################################################################
   ## Bascule d'un onglet à l'autre quand clic sur une ligne spécifique du tableau calcul
-  observeEvent(input$calcul_cell_clicked, {
-    cellule = data.frame(input$calcul_cell_clicked)
-    if (nrow(cellule) >0){
-      if (cellule$value == "Abattements"){
-        updateTabsetPanel(session,inputId = 'tabs', selected = 'Abattements')
-      }
-    }
-  })
+  
+  # observeEvent(input$calcul_cell_clicked, {
+  #   cellule = data.frame(input$calcul_cell_clicked)
+  #   if (nrow(cellule) >0){
+  #     if (cellule$value == "Abattements"){
+  #       updateTabsetPanel(session,inputId = 'tabs', selected = 'Abattements')
+  #     }
+  #   }
+  # })
   
   ### Seuils divers d'exonération et d'abattement
   seuils <- reactive({
@@ -94,7 +95,7 @@ server <- function(input, output, session) {
     art1417_2 = calculer_seuil(grille_1417_2_CGI, entree()$zoneGeo, "2017", entree()$nbParts)
     art1417_1bis = calculer_seuil(grille_1417_1bis_CGI, entree()$zoneGeo, "2017", entree()$nbParts)
     art1414_A1 = calculer_seuil(grille_1414_A1_CGI, entree()$zoneGeo, "2017", entree()$nbParts)
-    
+
     return(list(art1417_1 = art1417_1,
                 art1417_1bis = art1417_1bis,
                 art1417_2 = art1417_2,
@@ -242,7 +243,7 @@ server <- function(input, output, session) {
     
     plafonnement = data.frame(Montant = c(total, plafond, degrevementAffiche), Explication = '')
     plafonnement$Montant = euro2(plafonnement$Montant)
-    # plafonnement$Montant = gsub('NA €', '-', plafonnement$Montant)
+    plafonnement$Montant = gsub('NA €', '-', plafonnement$Montant)
     rownames(plafonnement) = c('Total avant plafonnement', 'Plafond', 'Dégrèvement appliqué')
     
     plafonnement$Explication[1] = "Somme des cotisations, frais de gestion, prélèvements pour
@@ -271,26 +272,26 @@ server <- function(input, output, session) {
                 plafonnement = plafonnement))
   })
 
-  output$calcul = DT::renderDataTable({
-    datatable(calculTH()$detailCalcul, 
-              callback = JS("
-                            firstColumn = $('#calcul tr td:first-child');
-                            $(firstColumn[0]).attr('title', 'Valeur du bien défini à partir de ses caractéristiques');
-                            $(firstColumn[1]).attr('title', 'Somme des abattements votés par la collectivité');
-                            $(firstColumn[2]).attr('title', 'Valeur locative après abattement');
-                            $(firstColumn[3]).attr('title', 'Taux voté par la collectivité');
-                            $(firstColumn[4]).attr('title', 'Base nette x taux de cotisation');
-                            $(firstColumn[6]).attr('title', 'Cotisations x taux de gestion');
-                            $(firstColumn[8]).attr('title', 'Base nette x taux base élevée');
-                            $(firstColumn[10]).attr('title', 'Base nette x taux résidence secondaire');
-                          "),
-              options = list(dom = 't', "pageLength" = 40))
-    })
+  # output$calcul = DT::renderDataTable({
+  #   datatable(calculTH()$detailCalcul, 
+  #             callback = JS("
+  #                           firstColumn = $('#calcul tr td:first-child');
+  #                           $(firstColumn[0]).attr('title', 'Valeur du bien défini à partir de ses caractéristiques');
+  #                           $(firstColumn[1]).attr('title', 'Somme des abattements votés par la collectivité');
+  #                           $(firstColumn[2]).attr('title', 'Valeur locative après abattement');
+  #                           $(firstColumn[3]).attr('title', 'Taux voté par la collectivité');
+  #                           $(firstColumn[4]).attr('title', 'Base nette x taux de cotisation');
+  #                           $(firstColumn[6]).attr('title', 'Cotisations x taux de gestion');
+  #                           $(firstColumn[8]).attr('title', 'Base nette x taux base élevée');
+  #                           $(firstColumn[10]).attr('title', 'Base nette x taux résidence secondaire');
+  #                         "),
+  #             options = list(dom = 't', "pageLength" = 40))
+  #   })
   
   output$calcul_baseNette = DT::renderDataTable({
     datatable(calculTH()$detailCalcul[1:3,], 
               options = list(dom = 't', "pageLength" = 40))
-  })
+    })
   
   output$calcul_cotisation = DT::renderDataTable({
     datatable(calculTH()$detailCalcul[3:5,], 
@@ -300,19 +301,18 @@ server <- function(input, output, session) {
   output$calcul_fraisGestion = DT::renderDataTable({
     datatable(calculTH()$detailCalcul[5:7,], 
               options = list(dom = 't', "pageLength" = 40))
-  })
+    })
   
   output$calcul_prelevementRS = DT::renderDataTable({
     datatable(calculTH()$detailCalcul[c(5,10,11),], 
               options = list(dom = 't', "pageLength" = 40))
-  })
+    })
   
   output$calcul_baseElevee = DT::renderDataTable({
     datatable(calculTH()$detailCalcul[c(5,8,9),], 
               options = list(dom = 't', "pageLength" = 40))
-  })
+    })
 
-  
   output$totaux =  DT::renderDataTable({
     datatable(totauxTH()$totaux, options = list(dom = 't', "pageLength" = 40))
     })
@@ -393,15 +393,16 @@ server <- function(input, output, session) {
       return(g)
     })
       
+  ##############################################################################  
   ########################### Onglet cotisation et frais de gestion
+    
   output$cotisations = renderText({
     phrase = "Base nette d'imposition x taux de cotisation voté par la collectivité."
     if (input$residence == 'secondaire'){
       phrase2 = "Dans le cas d'une résidence secondaire, les communes peuvent décider
       d'une majoration du taux de cotisation allant de 5% à 60%. 
-      Votre habitation étant une résidence secondaire. Si votre commune a voté une majoration, 
-      son taux est indiqué sur votre feuille d'imposition. Entrez ce taux dans le menu de gauche pour adapter le taux communal
-      de cotisation."
+      Si votre commune a voté une majoration, son taux est indiqué sur votre feuille d'imposition. 
+      Entrez ce taux dans le menu de gauche pour adapter le taux communal de cotisation."
     phrase = paste0(phrase, '<br>', phrase2)
     }
     return(formatter_phrase(phrase))
@@ -425,11 +426,51 @@ server <- function(input, output, session) {
     valeur locative nette communale dépasse 4573€. Pour les résidences principales, ce taux est de 2%.
     Pour les résidences secondaires dont la valeur locative nette est inférieure ou égale à 7622€, 
     il est 1,2%, 1,7% au dela.
-    <br>Des cas d'exonération sont prévus."
+    <br>Si vous bénéficiez du plafonnement de votre taxe, cette majoration n'est pas due."
     return(formatter_phrase(phrase))
   })   
     
+  # ##############################################################################  
+  # ########################### Onglet cotisation et frais de gestion
+  output$plafondActif <- reactive({
+    ! any(input$residence == 'secondaire' | input$isf | entree()$rfr > seuils()$art1417_2)
+  })
+  outputOptions(output, "plafondActif", suspendWhenHidden = FALSE)
   
+
+  output$explicationPlafonnement = renderText({
+    
+    # Cas où il n'y a pas de plafonnement
+    if (input$residence == 'secondaire') {
+      phrase = "Il n'y a pas de plafonnement pour les résidences secondaires"
+      return(phrase)
+    }
+    if (input$isf) {
+      phrase = "Il n'y a pas de plafonnement pour les ménages ayant payé l'ISF"
+      return(phrase)
+    }
+    if (entree()$rfr > seuils()$art1417_2) {
+      phrase = sprintf("Votre revenu excèdant le seuil de %s€ (défini en fonction
+        de votre zone géographique et de la composition de votre foyer), vous
+                       n'avez pas le droit à un abattement", seuils()$art1417_2)
+      return(phrase)
+    }
+
+    # Cas où il y a un plafonnement.
+    rfrAbattu = max(0, entree()$rfr - seuils()$art1417_2)
+    maxTh = 0.0344*rfrAbattu
+    phrase = sprintf("Votre revenu fiscal de référence est de %s€.
+    <br>Compte tenu de votre zone géographique (département : %s, nombre de parts fiscales : %s), un abattement
+    de %s€ est calculé.
+    <br>Votre rfr abattu est alors de %s€.
+    <br>Votre taxe d'habitation (cotisations + frais de gestion) ne doit pas excéder 3,44%% de ce montant, soit %s€.",
+                     entree()$rfr, str_to_title(input$nomDepartement),  entree()$nbParts,
+                     seuils()$art1417_2, rfrAbattu, maxTh)
+    return(formatter_phrase(phrase))
+
+    
+    return(phrase)
+  })
 } 
 
 

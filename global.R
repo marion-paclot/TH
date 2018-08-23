@@ -5,6 +5,7 @@ library(ggplot2)
 library(plotly)
 library(Cairo)
 library(plyr)
+library(stringr)
 
 options(shiny.reactlog = T, stringsAsFactors = FALSE)
 

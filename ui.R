@@ -201,7 +201,13 @@ navbarPage(
                conditionalPanel(condition = "input.residence == 'secondaire'", h4("Majoration résidence secondaire au profit de l'Etat")),
                conditionalPanel(condition = "input.residence == 'secondaire'", verbatimTextOutput("majorationRsEtat")),
                conditionalPanel(condition = "input.residence == 'secondaire'", dataTableOutput("calcul_prelevementRS"))
-               )
+               ),
+      
+      # Onglet Plafonnement
+      tabPanel("Plafonnement",
+               br(),
+               verbatimTextOutput("explicationPlafonnement")
+      )
      )
     )
   ),
