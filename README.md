@@ -24,7 +24,7 @@ Enfin, le cas modélisé par l'application reste le cas "classique" d'un ménage
 
 ## Droits d'auteur et licence
 
-2018 Marion Paclot
+2018 Etalab Marion Paclot
 
 Les données et le code de ce dépôt sont publiées sous Licence Ouverte
 2.0, lisible dans le fichier LO.md de ce dépôt.
