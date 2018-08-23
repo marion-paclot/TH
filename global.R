@@ -25,6 +25,7 @@ grille_1414_A1_CGI = read.csv2("seuils_1414-A-1-CGI.csv", fileEncoding = "UTF-8"
 url_1417 = "https://www.legifrance.gouv.fr/affichCodeArticle.do?idArticle=LEGIARTI000027517723&cidTexte=LEGITEXT000006069577"
 url_1414 = "https://www.legifrance.gouv.fr/affichCodeArticle.do?cidTexte=LEGITEXT000006069577&idArticle=LEGIARTI000037100266&dateTexte=&categorieLien=id"
 
+
 ###################################################
 # Tooltip d'explication
 tooltipVeuf = "Veuf ou veuve, sans condition d\\'\\âge"
@@ -53,6 +54,9 @@ tooltipIsf = "Imp\\ôt de solidarit\\é sur la fortune pay\\é au titre de l\\'a
 tooltipAah = "B\\én\\éficiaire de l\\'allocation adulte handicap\\é. 
 <br>Cas \\équivalent \\: vous \\êtes infirme ou invalide et ne pouvez subvenir par votre travail aux n\\écessit\\és de l\\'existence."
 tooltipAah = gsub("\n", " ", tooltipAah)
+
+tooltipMajRs = "Si la commune en a vot\\é une, valeur comprise entre 5\\% et 60\\%."
+
 
 ################################################### 
 # Valeurs d'abattements pour une collectivité territoriale.
@@ -261,8 +265,8 @@ calculer_plafonnement = function(rfr, zoneGeo, isf, nbParts, typeRes){
   }
   abattement = calculer_seuil(grille_1414_A1_CGI, zoneGeo, 2017, nbParts)
   
-  th_max = round2(max(0,0.0344*(rfr - abattement)),0)
-  return(th_max)
+  thBruteMax = round2(max(0,0.0344*(rfr - abattement)),0)
+  return(thBruteMax)
 }
 
 
@@ -311,10 +315,10 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
                                       paste("Com. + interco. =\n", cotisationsResSecondaire_affichage[1]),
                                       0)
   
-  # Plafonnement
+  # Plafonnement cotisations brute + plafonnement
   plafond = calculer_plafonnement(rfr, zoneGeo, isf, nbParts, typeRes)
   
-  # Boucle de nouveau calcul
+  # Tout en un tableau
   detailCalcul = data.frame(
     "Valeur locative brute" = euro2(vlBrute), 
     "Abattements" = euro(totauxAbattements), 
@@ -353,9 +357,6 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
               cotisationsResSecondaire = cotisationsResSecondaire,
               plafond = plafond))
 }
-
-# detailler_calcul(2, 20000, 13000, 3000, c(), c(), rei[120,], colAbattements, 
-#                  "secondaire", "MAYOTTE", FALSE, 3)
 
 cascade_abattements = function(vlBrute, abattements, multiplicateur){
   nom_abattements = c("GAB", "PAC1-2", "PAC3+", "Special", "Handicape")

@@ -224,6 +224,7 @@ server <- function(input, output, session) {
   totauxTH <- reactive({
     totalCotisations = sum(calculTH()$cotisations)
     totalFraisGestion = sum(calculTH()$fraisGestion)
+    totalPourPlafond = totalCotisations + totalFraisGestion
     totalBaseElevee = sum(calculTH()$cotisationsBaseElevee)
     totalResSecondaire = sum(calculTH()$cotisationsResSecondaire)
     total = totalCotisations + totalFraisGestion + totalBaseElevee + totalResSecondaire
@@ -231,20 +232,25 @@ server <- function(input, output, session) {
     totaux = data.frame(Totaux = c(totalCotisations, totalFraisGestion, totalBaseElevee,
                                    totalResSecondaire))
     totaux$Totaux = euro2(totaux$Totaux)
+    colnames(totaux) = "Montant"
     rownames(totaux) = c("Cotisations", "Frais de gestion",
                          "Cotisation base élevée", "Cotisation résidence secondaire")
     
     plafond = calculTH()$plafond
-    degrevement = ifelse(!is.na(plafond) & total >= (plafond +8), total - plafond, 0)
-    plafonnement = data.frame(Montant = c(total, plafond, degrevement), Explication = 'NA')
+    degrevementAffiche = ifelse(totalPourPlafond >= plafond, totalPourPlafond - plafond, 0)
+    degrevementApplique = ifelse(degrevementAffiche <8, 0, degrevementAffiche)
+    
+    plafonnement = data.frame(Montant = c(total, plafond, degrevementAffiche), Explication = '')
     plafonnement$Montant = euro2(plafonnement$Montant)
-    plafonnement$Montant = gsub('NA €', '-', plafonnement$Montant)
-    rownames(plafonnement) = c('Total avant plafonnement', 'Plafond', 'Dégrèvement')
+    # plafonnement$Montant = gsub('NA €', '-', plafonnement$Montant)
+    rownames(plafonnement) = c('Total avant plafonnement', 'Plafond', 'Dégrèvement appliqué')
+    
     plafonnement$Explication[1] = "Somme des cotisations, frais de gestion, prélèvements pour
-    base élevée et résidence secondaire."
-    plafonnement$Explication[2] = "Montant établi en fonction du rfr, du nombre de parts fiscales  
-    et de la zone géographique, sous réserve de ne pas dépasser un certain revenu, de ne pas être assujetti
-    à l'ISF et qu'il s'agisse d'une résidence principale."
+    base élevée et résidence secondaire, avant plafonnement."
+    
+    plafonnement$Explication[2] = sprintf("Le total cotisations + frais de gestion (%s€) ne doit pas dépasser ce montant.
+    Il dépend du rfr, du nombre de parts fiscales et de la zone géographique.", totalPourPlafond)
+    
     if (input$residence == 'secondaire') {
       plafonnement$Explication[2] = "Il n'y a pas de plafonnement pour les résidences secondaires"
     }
@@ -252,11 +258,12 @@ server <- function(input, output, session) {
       plafonnement$Explication[2] = "Il n'y a pas de plafonnement pour les ménages ayant payé l'ISF"
     }
     if (entree()$rfr > seuils()$art1417_2) {
-      plafonnement$Explication[2] = sprintf("Votre revenu excèdant le seuil de %s€, vous n'avez pas le droit à un abattement", seuils()$art1417_2)
+      plafonnement$Explication[2] = sprintf("Votre revenu excèdant le seuil de %s€ (défini en fonction de votre zone géographique et
+                                            de la composition de votre foyer), vous n'avez pas le droit à un abattement", seuils()$art1417_2)
     }
 
-    plafonnement$Explication[3] = "Réduction de la TH si le montant total excède le plafond calculé ci-dessus.
-    Si ce dégrèvement est inférieur à 8€, il n'est pas appliqué."
+    plafonnement$Explication[3] = "Réduction du montant du au titre de la taxe d'habitation.
+    Si ce montant est inférieur à 8€, il n'est pas appliqué."
     
 
     return(list(totaux = totaux, 
@@ -388,11 +395,10 @@ server <- function(input, output, session) {
       
   ########################### Onglet cotisation et frais de gestion
   output$cotisations = renderText({
-    phrase = "Les cotisations sont calculées en multipliant la base nette d'imposition par le taux
-    de cotisation voté par la collectivité."
+    phrase = "Base nette d'imposition x taux de cotisation voté par la collectivité."
     if (input$residence == 'secondaire'){
-      phrase2 = "Dans le cas d'une résidence secondaire, une majoration allant de 
-      5% à 60% peut être décidée par la commune. 
+      phrase2 = "Dans le cas d'une résidence secondaire, les communes peuvent décider
+      d'une majoration du taux de cotisation allant de 5% à 60%. 
       Votre habitation étant une résidence secondaire. Si votre commune a voté une majoration, 
       son taux est indiqué sur votre feuille d'imposition. Entrez ce taux dans le menu de gauche pour adapter le taux communal
       de cotisation."
@@ -402,9 +408,8 @@ server <- function(input, output, session) {
   })
   
   output$fraisGestion = renderText({
-    phrase = "Les frais de gestion sont calculés en multipliant la cotisation due à 
-    chaque collectivité par un taux qui lui est spécifique. 
-    Les frais de gestion pour la commune et l'intercommunalité sont calculés en 
+    phrase = "Cotisations x taux dépendant de la collectivité. 
+    <br>Les frais de gestion pour la commune et l'intercommunalité sont calculés en 
     sommant les cotisations avant application du taux"
     return(formatter_phrase(phrase))
   })   
@@ -417,9 +422,9 @@ server <- function(input, output, session) {
   
   output$majorationBaseElevee = renderText({
     phrase = "L'Etat perçoit une majoration de cotisation pour les résidences dont la
-    valeur locative nette communale dépasse 4573€. Le taux dé majoration dépend de s'il s'agit d'une
-    résidence principale ou secondaire. Pour les résidences secondaires, ce taux est augmenté si la
-    valeur locative nette communale est supérieure à 7622€.
+    valeur locative nette communale dépasse 4573€. Pour les résidences principales, ce taux est de 2%.
+    Pour les résidences secondaires dont la valeur locative nette est inférieure ou égale à 7622€, 
+    il est 1,2%, 1,7% au dela.
     <br>Des cas d'exonération sont prévus."
     return(formatter_phrase(phrase))
   })   

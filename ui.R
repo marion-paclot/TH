@@ -14,7 +14,7 @@ navbarPage(
                      step = 1)
       ),
       div(
-        style = "display:inline-block;",
+        style = "display:inline-block ; margin-left: 10px;",
         checkboxInput("rfrAbsent", "Pas de RFR", value = FALSE),
         bsTooltip(
           id = "rfrAbsent",
@@ -24,11 +24,7 @@ navbarPage(
       ),
       
       checkboxInput("isf", "ISF", value = FALSE),
-      bsTooltip(
-        id = "isf",
-        title = tooltipIsf,
-        trigger = "hover"
-        ),
+      bsTooltip(id = "isf", title = tooltipIsf, trigger = "hover"),
       checkboxGroupInput(
         "alloc",
         "Bénéficiaire de ces allocations",
@@ -135,7 +131,8 @@ navbarPage(
         0,
         min = 0,
         step = 1
-      )
+      ),
+      bsTooltip(id = "tauxMajRsCommune", title = tooltipMajRs, trigger = "hover")
     ),
     mainPanel(width = 8,
               tags$head(tags$style(HTML("pre { white-space: pre-wrap; word-break: keep-all; }"))),
@@ -147,7 +144,8 @@ navbarPage(
                br(),
                verbatimTextOutput("exoneration"),
                br(),
-               conditionalPanel(condition = "output.assujetti", dataTableOutput("calcul")),
+               conditionalPanel(condition = "output.assujetti", dataTableOutput("calcul_baseNette")),
+               # conditionalPanel(condition = "output.assujetti", dataTableOutput("calcul")),
                br(),
                conditionalPanel(condition = "output.assujetti", dataTableOutput("totaux")),
                br(),
@@ -159,7 +157,6 @@ navbarPage(
                                 verbatimTextOutput("vlNette")),
                conditionalPanel(condition = "input.residence != 'principale'", 
                                 verbatimTextOutput("pas_d_abattement")),
-               conditionalPanel(condition = "output.assujetti", dataTableOutput("calcul_baseNette")),
                
                br(),
                br(),
