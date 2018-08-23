@@ -95,11 +95,15 @@ server <- function(input, output, session) {
     art1417_2 = calculer_seuil(grille_1417_2_CGI, entree()$zoneGeo, "2017", entree()$nbParts)
     art1417_1bis = calculer_seuil(grille_1417_1bis_CGI, entree()$zoneGeo, "2017", entree()$nbParts)
     art1414_A1 = calculer_seuil(grille_1414_A1_CGI, entree()$zoneGeo, "2017", entree()$nbParts)
-
+    art1417_2bisa = calculer_seuil(grille_1417_2bisa_CGI, "France", "2018", entree()$nbParts)
+    art1417_2bisb = calculer_seuil(grille_1417_2bisb_CGI, "France", "2018", entree()$nbParts)
+    
     return(list(art1417_1 = art1417_1,
                 art1417_1bis = art1417_1bis,
                 art1417_2 = art1417_2,
-                art1414_A1 = art1414_A1))
+                art1414_A1 = art1414_A1,
+                art1417_2bisa = art1417_2bisa,
+                art1417_2bisb = art1417_2bisb))
   })
   
   #### EXONERATION
@@ -226,21 +230,35 @@ server <- function(input, output, session) {
     totalCotisations = sum(calculTH()$cotisations)
     totalFraisGestion = sum(calculTH()$fraisGestion)
     totalPourPlafond = totalCotisations + totalFraisGestion
-    totalBaseElevee = sum(calculTH()$cotisationsBaseElevee)
+    totalBaseElevee = sum(calculTH()$cotisationsBaseElevee, na.rm = T)
     totalResSecondaire = sum(calculTH()$cotisationsResSecondaire)
-    total = totalCotisations + totalFraisGestion + totalBaseElevee + totalResSecondaire
     
+    
+    plafond = calculTH()$plafond
+    degrevementAffiche = ifelse(totalPourPlafond >= plafond, totalPourPlafond - plafond, 0)
+    degrevementAffiche = degrevementAffiche[is.na(degrevementAffiche)] = 0
+    degrevementApplique = ifelse(degrevementAffiche < 8, 0, degrevementAffiche)
+
+    # Dans le cas où le plafond est atteint, la cotisation baseElevée est ramenée à 0
+    totalBaseElevee2 = ifelse(degrevementAffiche>0, 0, totalBaseElevee)
+
+    ########################
+    # Tableau des totaux
     totaux = data.frame(Totaux = c(totalCotisations, totalFraisGestion, totalBaseElevee,
                                    totalResSecondaire))
     totaux$Totaux = euro2(totaux$Totaux)
     colnames(totaux) = "Montant"
     rownames(totaux) = c("Cotisations", "Frais de gestion",
                          "Cotisation base élevée", "Cotisation résidence secondaire")
+    total = totalCotisations + totalFraisGestion + totalBaseElevee2 + totalResSecondaire
+    totaux$Explication = ''
+    if(totalBaseElevee2 != totalBaseElevee){
+      totaux$Explication[3] = "Vous bénéficiez du plafonnement de votre taxe, cette cotisation
+                              ne sera donc pas due."
+    }
     
-    plafond = calculTH()$plafond
-    degrevementAffiche = ifelse(totalPourPlafond >= plafond, totalPourPlafond - plafond, 0)
-    degrevementApplique = ifelse(degrevementAffiche <8, 0, degrevementAffiche)
-    
+    #########################
+    # Tableau des plafonds
     plafonnement = data.frame(Montant = c(total, plafond, degrevementAffiche), Explication = '')
     plafonnement$Montant = euro2(plafonnement$Montant)
     plafonnement$Montant = gsub('NA €', '-', plafonnement$Montant)
@@ -430,8 +448,8 @@ server <- function(input, output, session) {
     return(formatter_phrase(phrase))
   })   
     
-  # ##############################################################################  
-  # ########################### Onglet cotisation et frais de gestion
+  ##############################################################################
+  ########################### Onglet cotisations et frais de gestion
   output$plafondActif <- reactive({
     ! any(input$residence == 'secondaire' | input$isf | entree()$rfr > seuils()$art1417_2)
   })
@@ -443,17 +461,17 @@ server <- function(input, output, session) {
     # Cas où il n'y a pas de plafonnement
     if (input$residence == 'secondaire') {
       phrase = "Il n'y a pas de plafonnement pour les résidences secondaires"
-      return(phrase)
+      return(formatter_phrase(phrase))
     }
     if (input$isf) {
       phrase = "Il n'y a pas de plafonnement pour les ménages ayant payé l'ISF"
-      return(phrase)
+      return(formatter_phrase(phrase))
     }
     if (entree()$rfr > seuils()$art1417_2) {
       phrase = sprintf("Votre revenu excèdant le seuil de %s€ (défini en fonction
         de votre zone géographique et de la composition de votre foyer), vous
                        n'avez pas le droit à un abattement", seuils()$art1417_2)
-      return(phrase)
+      return(formatter_phrase(phrase))
     }
 
     # Cas où il y a un plafonnement.
@@ -469,7 +487,32 @@ server <- function(input, output, session) {
     return(formatter_phrase(phrase))
 
     
-    return(phrase)
+  })
+  
+  ##############################################################################
+  ########################### Onglet reforme 2018
+  output$reforme2018 = renderText({
+    phrase = "Pour l'année 2018, les ménages dont le revenu fiscal de référence est inférieur à un certain
+    seuil bénéficient d'un dégrèvement pouvant atteindre 30% du montant total de leur taxe d'habitation."
+    return(formatter_phrase(phrase))
+    
+  })
+  
+  output$calculReforme2018 = renderText({
+    reforme2018 = calculer_reforme2018(entree()$rfr, entree()$nbParts, totauxTH()$total)
+    if (reforme2018$taux == 0){
+      phrase = sprintf("Votre revenu fiscal de référence est trop élevé pour bénéficier d'un dégrèvement.
+      <br>Compte tenu du nombre de parts de votre foyer, un dégrèvement n'est accordé que pour
+      un rfr inférieur à %s€.", seuils()$art1417_2bisb)
+    }
+    if (reforme2018$taux > 0){
+      phrase = sprintf("Votre revenu fiscal de référence vous permet de bénéficier 
+                       d'un dégrèvement de %s%%.
+                       <br>Vous pourriez bénéficier d'une réduction du montant de 
+                       votre taxe d'habitation de %s€ (montant indicatif).", 
+                       round(100*reforme2018$taux), reforme2018$degrevement)
+    }
+    return(formatter_phrase(phrase))
   })
 } 
 

@@ -21,6 +21,8 @@ grille_1417_1_CGI = read.csv2("seuils_1417-1-CGI.csv", fileEncoding = "UTF-8")
 grille_1417_1bis_CGI = read.csv2("seuils_1417-1bis-CGI.csv", fileEncoding = "UTF-8")
 grille_1417_2_CGI = read.csv2("seuils_1417-2-CGI.csv", fileEncoding = "UTF-8")
 grille_1414_A1_CGI = read.csv2("seuils_1414-A-1-CGI.csv", fileEncoding = "UTF-8")
+grille_1417_2bisa_CGI = read.csv2("seuils_1417-2bisa-CGI.csv", fileEncoding = "UTF-8")
+grille_1417_2bisb_CGI = read.csv2("seuils_1417-2bisb-CGI.csv", fileEncoding = "UTF-8")
 
 # Liens vers les articles du CGI
 url_1417 = "https://www.legifrance.gouv.fr/affichCodeArticle.do?idArticle=LEGIARTI000027517723&cidTexte=LEGITEXT000006069577"
@@ -80,10 +82,10 @@ colTauxCotisations = list(commune = "H12",
                           TSE = c("H52", "H52A"),
                           GEMAPI = c("H52cGEMAPI", "H52gGEMAPI"))
 
-# Dans l'ordre : principal (+ dépendance), secondaire, vacant
+# Dans l'ordre : principal, dépendance principale, secondaire, vacant
 tauxGestion = list(commune = c(0.01, 0.01, 0.03, 0.08),
                    syndicat = c(0.08, 0.08, 0.08, 0.08),
-                   interco = c(0.01, 0,0.1, 0.03, 0.08),
+                   interco = c(0.01, 0.01, 0.03, 0.08),
                    TSE = c(0.09, 0.09, 0.09, 0),
                    GEMAPI = c(0.03, 0.03, 0.03, 0.03))
 
@@ -231,8 +233,7 @@ calculer_taux_cotisation = function(colTaux, reiCom, typeRes, txMajRsCom){
 }
 
 calculer_taux_gestion = function(typeRes, taux){
-  typeRes = ifelse(typeRes == "dépendance princ", "principale", typeRes)
-  residencePS = c("principale", "secondaire", "vacant")
+  residencePS = c("principale", "dépendance princ", "secondaire", "vacant")
   valeur = sapply(taux,function(x) x[match(typeRes, residencePS)])
   valeur = as.numeric(valeur)
   return(valeur)
@@ -291,7 +292,7 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
   
   # Frais de gestion
   tauxFraisGestion = calculer_taux_gestion(typeRes, tauxGestion)
-  
+
   # Attention les frais sont calculés différemment pour les logements vacants
   fraisGestion = calculer_prelevement(cotisations, tauxFraisGestion, "casPart13")
   if (typeRes == "vacant"){
@@ -319,6 +320,7 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
   # Plafonnement cotisations brute + plafonnement
   plafond = calculer_plafonnement(rfr, zoneGeo, isf, nbParts, typeRes)
   
+
   # Tout en un tableau
   detailCalcul = data.frame(
     "Valeur locative brute" = euro2(vlBrute), 
@@ -357,6 +359,24 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
               tauxResSecondaire = tauxResSecondaire,
               cotisationsResSecondaire = cotisationsResSecondaire,
               plafond = plafond))
+}
+
+calculer_reforme2018 = function(rfr, nbParts, montantTotalTH){
+  seuilBas = calculer_seuil(grille_1417_2bisa_CGI, "France", "2018", nbParts)
+  seuilHaut = calculer_seuil(grille_1417_2bisb_CGI, "France", "2018", nbParts)
+  
+  taux = 0
+  if (rfr <= seuilBas){
+    taux = 0.30
+  }
+  if (rfr > seuilBas & rfr <= seuilHaut){
+    taux = 0.3*(seuilHaut-rfr)/(seuilHaut - seuilBas)
+  }
+  degrevement = round2(taux*montantTotalTH,0)
+  montantTaxe = montantTotalTH - degrevement
+  return(list(taux = taux,
+              degrevement = degrevement,
+              montantTaxe = montantTaxe))
 }
 
 cascade_abattements = function(vlBrute, abattements, multiplicateur){

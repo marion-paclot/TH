@@ -143,12 +143,12 @@ navbarPage(
       tabPanel("Taxe",
                br(),
                verbatimTextOutput("exoneration"),
-               br(),
+               
+               conditionalPanel(condition = "output.assujetti", hr()),
                conditionalPanel(condition = "output.assujetti", dataTableOutput("calcul_baseNette")),
-               # conditionalPanel(condition = "output.assujetti", dataTableOutput("calcul")),
-               br(),
+               conditionalPanel(condition = "output.assujetti", hr()),
                conditionalPanel(condition = "output.assujetti", dataTableOutput("totaux")),
-               br(),
+               conditionalPanel(condition = "output.assujetti", hr()),
                conditionalPanel(condition = "output.assujetti", dataTableOutput("plafonnement"))
               ),
       tabPanel("Abattements",
@@ -207,6 +207,12 @@ navbarPage(
       tabPanel("Plafonnement",
                br(),
                verbatimTextOutput("explicationPlafonnement")
+      ),
+      tabPanel("Réforme 2018",
+               br(),
+               verbatimTextOutput("reforme2018"),
+               br(),
+               verbatimTextOutput("calculReforme2018")
       )
      )
     )
