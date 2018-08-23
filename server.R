@@ -10,7 +10,7 @@ server <- function(input, output, session) {
     ))})
     
     
-  entree = reactive({
+  entree <- reactive({
     nomDep = input$nomDepartement
     nomCom = input$nomCommune
     nbParts = as.numeric(gsub(',', '.', input$nbParts))
@@ -26,6 +26,8 @@ server <- function(input, output, session) {
 
     nbPAC[is.na(nbPAC)] = 1
     nbParts[is.na(nbParts)] = 0
+    tauxMajRsCommune = input$tauxMajRsCommune
+    tauxMajRsCommune[is.na(tauxMajRsCommune)] = 0
     
     # Figer le nom du département jusqu'à ce qu'un département existant soit choisi
     # Création d'une variable qui prend la précédente valeur correcte. Initialisation à l'ouverture de l'app
@@ -59,7 +61,8 @@ server <- function(input, output, session) {
                 reiCom = reiCom,
                 vlBrute = vlBrute,
                 rfr = rfr,
-                tlv = tlv))
+                tlv = tlv,
+                tauxMajRsCommune = tauxMajRsCommune))
 
   }) 
   
@@ -86,7 +89,7 @@ server <- function(input, output, session) {
   })
   
   ### Seuils divers d'exonération et d'abattement
-  seuils = reactive({
+  seuils <- reactive({
     art1417_1 = calculer_seuil(grille_1417_1_CGI, entree()$zoneGeo, "2017", entree()$nbParts)
     art1417_2 = calculer_seuil(grille_1417_2_CGI, entree()$zoneGeo, "2017", entree()$nbParts)
     art1417_1bis = calculer_seuil(grille_1417_1bis_CGI, entree()$zoneGeo, "2017", entree()$nbParts)
@@ -136,7 +139,7 @@ server <- function(input, output, session) {
   })
   outputOptions(output, "assujetti", suspendWhenHidden = FALSE)
   
-  
+
   output$exoneration <- renderText({
     
     phraseExoPartielle = "<br>Dans le cas où vous bénéficiez d'une exonération partielle 
@@ -208,10 +211,15 @@ server <- function(input, output, session) {
     calcul = detailler_calcul(entree()$nbPAC, entree()$rfr, seuils()$art1417_1, entree()$vlBrute, 
                               input$situation, input$alloc, entree()$reiCom,
                               colAbattements, input$residence, 
-                              entree()$zoneGeo, input$isf, entree()$nbParts, input$tauxMajRsCommune)
+                              entree()$zoneGeo, input$isf, entree()$nbParts, entree()$tauxMajRsCommune)
     colnames(calcul$detailCalcul) = c("Commune", 'Syndicat', "Intercommunalité", 'TSE', "GEMAPI")
     return(calcul)
   })
+  
+  output$baseElevee <- reactive({
+    return(calculTH()$basesNettes[1] > 4573)
+  })
+  outputOptions(output, "baseElevee", suspendWhenHidden = FALSE)
   
   totauxTH <- reactive({
     totalCotisations = sum(calculTH()$cotisations)
@@ -284,6 +292,16 @@ server <- function(input, output, session) {
   
   output$calcul_fraisGestion = DT::renderDataTable({
     datatable(calculTH()$detailCalcul[5:7,], 
+              options = list(dom = 't', "pageLength" = 40))
+  })
+  
+  output$calcul_prelevementRS = DT::renderDataTable({
+    datatable(calculTH()$detailCalcul[c(5,10,11),], 
+              options = list(dom = 't', "pageLength" = 40))
+  })
+  
+  output$calcul_baseElevee = DT::renderDataTable({
+    datatable(calculTH()$detailCalcul[c(5,8,9),], 
               options = list(dom = 't', "pageLength" = 40))
   })
 
@@ -392,8 +410,17 @@ server <- function(input, output, session) {
   })   
 
   output$majorationRsEtat = renderText({
-    phrase = "L'Etat perçoit une majoration de cotisation dans le cas des résidences secondaire,
-    correspondant à 15% de la valeur locative nette de la commune et du "
+    phrase = "L'Etat perçoit une majoration de cotisation dans le cas des résidences secondaires,
+    correspondant à 1,5% des cotisations dues à la commune et aux EPCI à fiscalité propre."
+    return(formatter_phrase(phrase))
+  })   
+  
+  output$majorationBaseElevee = renderText({
+    phrase = "L'Etat perçoit une majoration de cotisation pour les résidences dont la
+    valeur locative nette communale dépasse 4573€. Le taux dé majoration dépend de s'il s'agit d'une
+    résidence principale ou secondaire. Pour les résidences secondaires, ce taux est augmenté si la
+    valeur locative nette communale est supérieure à 7622€.
+    <br>Des cas d'exonération sont prévus."
     return(formatter_phrase(phrase))
   })   
     

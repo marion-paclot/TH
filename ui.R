@@ -7,15 +7,15 @@ navbarPage(
       id = "form",
       div(
         style = "display:inline-block;",
-        numericInput('rfr', 
-                     label = 'Revenu fiscal de référence',
+        numericInput("rfr", 
+                     label = "Revenu fiscal de référence",
                      value = 0,
                      min = 0,
                      step = 1)
       ),
       div(
         style = "display:inline-block;",
-        checkboxInput('rfrAbsent', "Pas de RFR", value = FALSE),
+        checkboxInput("rfrAbsent", "Pas de RFR", value = FALSE),
         bsTooltip(
           id = "rfrAbsent",
           title = "Le RFR est \\à blanc sur l\\'avis d\\'imposition",
@@ -23,24 +23,24 @@ navbarPage(
         )
       ),
       
-      checkboxInput('isf', "ISF", value = FALSE),
+      checkboxInput("isf", "ISF", value = FALSE),
       bsTooltip(
         id = "isf",
         title = tooltipIsf,
         trigger = "hover"
         ),
       checkboxGroupInput(
-        'alloc',
-        'Bénéficiaire de ces allocations',
-        choices = c('ASPA', 'ASI', 'AAH'),
+        "alloc",
+        "Bénéficiaire de ces allocations",
+        choices = c("ASPA", "ASI", "AAH"),
         inline = TRUE
       ),
       groupTooltip(id = "alloc", choice = "AAH", title = tooltipAah, trigger = "hover"),
       
       checkboxGroupInput(
-        'situation',
-        'Situation personnelle au 1er janvier 2017',
-        choices = c('Veuf', 'Senior', 'Handicapé', 'Indigent'),
+        "situation",
+        "Situation personnelle au 1er janvier 2017",
+        choices = c("Veuf", "Senior", "Handicapé", "Indigent"),
         inline = TRUE
       ),
       groupTooltip(id = "situation", 
@@ -64,8 +64,8 @@ navbarPage(
       div(
         style = "display:inline-block",
         numericInput(
-          'nbParts',
-          'Nombre de parts fiscales',
+          "nbParts",
+          "Nombre de parts fiscales",
           1,
           min = 1,
           max = 99,
@@ -80,8 +80,8 @@ navbarPage(
       div(
         style = "display:inline-block ; margin-left: 20px;",
         numericInput(
-          'nbPAC',
-          'Nombre de personnes à charge',
+          "nbPAC",
+          "Nombre de personnes à charge",
           0,
           min = 0,
           max = 99,
@@ -105,8 +105,8 @@ navbarPage(
       selectizeInput(
         "nomCommune",
         "Commune",
-        choices = '',
-        selected = '',
+        choices = "",
+        selected = "",
         multiple = FALSE,
         options = NULL
       ),
@@ -114,8 +114,8 @@ navbarPage(
       div(
         style = "display:inline-block",
         numericInput(
-          'vlBrute',
-          'Valeur locative brute',
+          "vlBrute",
+          "Valeur locative brute",
           0,
           min = 1,
           step = 1
@@ -127,11 +127,11 @@ navbarPage(
                      c("Principale" = "principale",
                        "Secondaire" = "secondaire", 
                        "Dépendance résidence principale" = "dépendance princ",
-                       "Logement vacant" = 'vacant'),inline = T)
+                       "Logement vacant" = "vacant"),inline = T)
       ),
       numericInput(
-        'tauxMajRsCommune',
-        'Taux de majoration résidence secondaire appliqué par la commune (en %)',
+        "tauxMajRsCommune",
+        "Taux de majoration résidence secondaire appliqué par la commune (en %)",
         0,
         min = 0,
         step = 1
@@ -141,7 +141,7 @@ navbarPage(
               tags$head(tags$style(HTML("pre { white-space: pre-wrap; word-break: keep-all; }"))),
               
     tabsetPanel(
-      id = 'tabs',
+      id = "tabs",
       type = "tabs",
       tabPanel("Taxe",
                br(),
@@ -153,7 +153,7 @@ navbarPage(
                br(),
                conditionalPanel(condition = "output.assujetti", dataTableOutput("plafonnement"))
               ),
-      tabPanel('Abattements',
+      tabPanel("Abattements",
                br(),
                conditionalPanel(condition = "output.assujetti && input.residence == 'principale'", 
                                 verbatimTextOutput("vlNette")),
@@ -164,11 +164,12 @@ navbarPage(
                br(),
                br(),
                conditionalPanel(condition = "output.assujetti && input.residence == 'principale'",
-                                radioButtons('ab_gph', "Element de calcul de la base d'imposition, détail des abattements",
-                                             choices = c('Commune' = 'commune',
-                                                         'Syndicat' = 'syndicat',
-                                                         'Intercommunalité' = 'interco',
-                                                         'TSE' = 'TSE', 'GEMAPI' = 'GEMAPI'), inline = TRUE)),
+                                radioButtons("ab_gph", "Element de calcul de la base d'imposition, détail des abattements",
+                                             choices = c("Commune" = "commune",
+                                                         "Syndicat" = "syndicat",
+                                                         "Intercommunalité" = "interco",
+                                                         "TSE" = "TSE", "GEMAPI" = "GEMAPI"), 
+                                             inline = TRUE)),
                conditionalPanel(condition = "output.assujetti && input.residence == 'principale'", 
                                 dataTableOutput("abattements")),
                br(),
@@ -178,30 +179,31 @@ navbarPage(
                ),
       
       ### Onglet cotisations, frais de gestion, 
-      tabPanel('Cotisations et frais de gestion',
+      tabPanel("Cotisations et frais de gestion",
                
                # Cotisations
                br(),
-               conditionalPanel(condition = "output.assujetti", h4('Cotisations')),
+               conditionalPanel(condition = "output.assujetti", h4("Cotisations")),
                conditionalPanel(condition = "output.assujetti", verbatimTextOutput("cotisations")),
                conditionalPanel(condition = "output.assujetti", dataTableOutput("calcul_cotisation")),
                
                # Frais de gestion
                conditionalPanel(condition = "output.assujetti", hr()),
-               conditionalPanel(condition = "output.assujetti", h4('Frais de gestion')),
+               conditionalPanel(condition = "output.assujetti", h4("Frais de gestion")),
                conditionalPanel(condition = "output.assujetti", verbatimTextOutput("fraisGestion")),
                conditionalPanel(condition = "output.assujetti", dataTableOutput("calcul_fraisGestion")),
                
+               # Majoration pour base locative élevée
+               conditionalPanel(condition = "output.baseElevee", hr()),
+               conditionalPanel(condition = "output.baseElevee", h4("Majoration sur base locative élevée au profit de l'Etat")),
+               conditionalPanel(condition = "output.baseElevee", verbatimTextOutput("majorationBaseElevee")),
+               conditionalPanel(condition = "output.baseElevee", dataTableOutput("calcul_baseElevee")),
+               
                # Majoration RS au profit de l'Etat
                conditionalPanel(condition = "input.residence == 'secondaire'", hr()),
-               conditionalPanel(condition = "input.residence == 'secondaire'", 
-                                h4("Majoration résidence secondaire au profit de l'Etat")),
-               conditionalPanel(condition = "input.residence == 'secondaire'", 
-                                verbatimTextOutput("majorationRsEtat"))
-               # ,
-               # conditionalPanel(condition = "input.residence == 'secondaire'", 
-               #                  dataTableOutput("calcul_fraisGestion"))
-               
+               conditionalPanel(condition = "input.residence == 'secondaire'", h4("Majoration résidence secondaire au profit de l'Etat")),
+               conditionalPanel(condition = "input.residence == 'secondaire'", verbatimTextOutput("majorationRsEtat")),
+               conditionalPanel(condition = "input.residence == 'secondaire'", dataTableOutput("calcul_prelevementRS"))
                )
      )
     )
@@ -212,9 +214,9 @@ navbarPage(
     12,
     tags$i("Module développé par Marion"),
     tags$br(),
-    tags$a(href = 'https://github.com/marion-paclot/TH/', 'Voir le code source'),
+    tags$a(href = "https://github.com/marion-paclot/TH/", "Voir le code source"),
     tags$br(),
-    tags$a(href = 'https://github.com/marion-paclot/TH/issues', 'Signaler une erreur ou proposer une amélioration')
-    # tags$a(href = 'https://www.etalab.gouv.fr/fr/', 'Etalab')
+    tags$a(href = "https://github.com/marion-paclot/TH/issues", "Signaler une erreur ou proposer une amélioration")
+    # tags$a(href = "https://www.etalab.gouv.fr/fr/", "Etalab")
   )
 )
