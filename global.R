@@ -198,10 +198,10 @@ extraire_abattements = function(reiCommune, nomCol, typeRes){
   colnames(abattements) = c("commune", "syndicat", "interco", "TSE", "GEMAPI")
   rownames(abattements) = c("general", "pac12", "pac3", "special", "handicape")
   
-  # # Cas des EPCI à fiscalité propre. Hypothèse que les i
-  # if (sum(abattements$interco) == 0){
-  #   abattements$interco = abattements$commune
-  # }
+  # Cas des EPCI à fiscalité propre. Hypothèse que le
+  if (sum(abattements$interco) == 0){
+    abattements$interco = abattements$commune
+  }
   return(abattements)
 }
 
@@ -347,7 +347,8 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
 }
 
 calculer_plafonnement = function(rfr, zoneGeo, isf, nbParts, typeRes, 
-                                 cotisations, fraisGestion){
+                                 cotisations, fraisGestion, cotisationsBaseElevee,
+                                 cotisationsResSecondaire){
 
   # Eligible au plafonnement
   seuilEligibilite = calculer_seuil(grille_1417_2_CGI, zoneGeo, 2017, nbParts)
@@ -371,6 +372,15 @@ calculer_plafonnement = function(rfr, zoneGeo, isf, nbParts, typeRes,
   # le plafonnement ouvre droit à son dégrèvement.
   degrevementBaseElevee = eligibilite & degrevementCalcule>0
   
+  # Montant total avant plafonnement
+  montantThAvPlafonnement = sum(cotisations, fraisGestion, cotisationsBaseElevee,
+                                cotisationsResSecondaire, na.rm = TRUE)
+  
+  # Montant total après application du plafonnement
+  montantThFinal = ifelse(degrevementCalcule>0, 
+                          sum(cotisations, fraisGestion) - degrevementApplique,
+                          montantThAvPlafonnement)
+  
   return(list(seuilEligibilite = seuilEligibilite,
               eligibilite = eligibilite,
               abattement = abattement, 
@@ -379,7 +389,9 @@ calculer_plafonnement = function(rfr, zoneGeo, isf, nbParts, typeRes,
               montantThPourPlafond = montantThPourPlafond,
               degrevementCalcule = degrevementCalcule,
               degrevementApplique = degrevementApplique,
-              degrevementBaseElevee = degrevementBaseElevee
+              degrevementBaseElevee = degrevementBaseElevee,
+              montantThAvPlafonnement = montantThAvPlafonnement,
+              montantThFinal = montantThFinal
               ))
 }
 

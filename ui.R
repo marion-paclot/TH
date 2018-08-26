@@ -143,6 +143,7 @@ navbarPage(
       tabPanel("Taxe",
                br(),
                tags$div(class="alert alert-info", textOutput("exoneration")),
+               conditionalPanel(condition = "output.assujetti", tags$div(class="alert alert-info", textOutput("valeurFinale"))),
                conditionalPanel(condition = "output.assujetti", hr()),
                conditionalPanel(condition = "output.assujetti", dataTableOutput("calcul_baseNette")),
                conditionalPanel(condition = "output.assujetti", hr()),
@@ -150,6 +151,7 @@ navbarPage(
                conditionalPanel(condition = "output.assujetti", hr()),
                conditionalPanel(condition = "output.assujetti", dataTableOutput("plafonnement"))
               ),
+      
       tabPanel("Abattements",
                br(),
                conditionalPanel(condition = "output.assujetti && input.residence == 'principale'", 

@@ -146,6 +146,38 @@ server <- function(input, output, session) {
   outputOptions(output, "assujetti", suspendWhenHidden = FALSE)
   
 
+  
+  ########################################################################
+  #################################### CALCUL PRINCIPAUX
+  
+  calculTH  <- reactive({
+    detailler_calcul(entree()$nbPAC, entree()$rfr, seuils()$art1417_1, entree()$vlBrute, 
+                    input$situation, input$alloc, entree()$reiCom,
+                    colAbattements, input$residence, 
+                    entree()$zoneGeo, input$isf, entree()$nbParts, entree()$tauxMajRsCommune)
+  })
+  
+  calculPlafond <- reactive({
+    print(calculer_plafonnement(entree()$rfr, entree()$zoneGeo, 
+                                input$isf, entree()$nbParts, input$residence,
+                                calculTH()$cotisations, calculTH()$fraisGestion,
+                                calculTH()$cotisationsBaseElevee, calculTH()$cotisationsResSecondaire))
+    calculer_plafonnement(entree()$rfr, entree()$zoneGeo, 
+                          input$isf, entree()$nbParts, input$residence,
+                          calculTH()$cotisations, calculTH()$fraisGestion,
+                          calculTH()$cotisationsBaseElevee, calculTH()$cotisationsResSecondaire)
+  })
+
+  output$baseElevee <- reactive({
+    calculTH()$basesNettes[1] > 4573
+  })
+  outputOptions(output, "baseElevee", suspendWhenHidden = FALSE)
+
+
+  ##############################################################################    
+  ##############################################################################  
+  ########## Onglet taxe
+  
   output$exoneration <- renderText({
     
     phraseExoPartielle = "<br>Dans le cas où vous bénéficiez d'une exonération partielle 
@@ -155,7 +187,7 @@ server <- function(input, output, session) {
     la commune a décidé d'une exonération de taxe d'habitation pour les parties louées
     à titre de meublé, la valeur locative brute de votre bien tient compte de l'abattement
     auquel vous avez droit."
-
+    
     phraseSeuil = sprintf("<br>L'exonération est soumise à condition de revenu : 
                           Le RFR d'un foyer de %s part%s ne doit pas dépasser %s€.", 
                           entree()$nbParts, ifelse(entree()$nbParts>1, 's', ''), seuils()$art1417_1)
@@ -172,19 +204,19 @@ server <- function(input, output, session) {
     
     phraseExoAah = sprintf("Vous percevez l'AAH. %s <br>Vous êtes exonéré de TH au 
                            titre de l'article 1417-I du CGI.", phraseSeuil)
-
+    
     phraseExoAahRejet = sprintf("Vous percevez l'AAH. %s Vous n'êtes pas exonéré de TH. %s", 
                                 phraseSeuil, phraseExoPartielle)
     
     phraseExoSeniorRejetIsf = sprintf("Vous êtes veuf/veuve ou avez plus de 60 ans 
-      mais vous avez payé l'ISF l'an passé. <br>Vous n'êtes pas exonéré de TH. %s", phraseExoPartielle)
+                                      mais vous avez payé l'ISF l'an passé. <br>Vous n'êtes pas exonéré de TH. %s", phraseExoPartielle)
     
     phraseExoSeniorRejet = sprintf("Vous êtes veuf/veuve ou avez plus de 60 ans et 
                                    vous n'avez pas payé l'ISF l'an passé. %s 
                                    <br>Vous n'êtes pas exonéré de TH. %s", phraseSeuil, phraseExoPartielle)
     
     phraseExoSenior = sprintf("Vous êtes veuf/veuve ou avez plus de 60 ans et vous n'avez pas payé l'ISF l'an passé.
-                     %s <br>Vous êtes exonéré de TH au titre de l'article 1417-I du CGI", phraseSeuil)
+                              %s <br>Vous êtes exonéré de TH au titre de l'article 1417-I du CGI", phraseSeuil)
     
     phrase = ifelse(exonerations()$exoDOM, phraseExoDom, NA)
     phrase = ifelse(exonerations()$exoAspaAsi, phraseExoAspaAsi, phrase)
@@ -204,41 +236,20 @@ server <- function(input, output, session) {
     # Cas des logements vacants
     if (input$residence == 'vacant'){
       phrase = ifelse(entree()$tlv, "Pour les logements vacants, votre commune a opté pour une taxe spécifique
-                    qui remplace la taxe d'habitation.",
+                      qui remplace la taxe d'habitation.",
                       "Votre logement est vacant, mais la taxe d'habitation est due.")
     }
     
     return(formatter_phrase(phrase))
-  })
+    })
   
-  ########################################################################
-  #################################### CALCUL PRINCIPAUX
   
-  calculTH  <- reactive({
-    detailler_calcul(entree()$nbPAC, entree()$rfr, seuils()$art1417_1, entree()$vlBrute, 
-                    input$situation, input$alloc, entree()$reiCom,
-                    colAbattements, input$residence, 
-                    entree()$zoneGeo, input$isf, entree()$nbParts, entree()$tauxMajRsCommune)
+  output$valeurFinale = renderText({
+    phrase = sprintf("Le montant final de votre taxe d'habitation est de %s€.
+            <br>Si vous bénéficiez du plafonnement de la taxe, le calcul du plafonnement
+            peut être inexact (données publiques manquantes).", calculPlafond()$montantThFinal)
+    formatter_phrase(phrase)
   })
-  
-  calculPlafond <- reactive({
-    print(calculer_plafonnement(entree()$rfr, entree()$zoneGeo, 
-                                input$isf, entree()$nbParts, input$residence,
-                                calculTH()$cotisations, calculTH()$fraisGestion))
-    calculer_plafonnement(entree()$rfr, entree()$zoneGeo, 
-                          input$isf, entree()$nbParts, input$residence,
-                          calculTH()$cotisations, calculTH()$fraisGestion)
-  })
-
-  output$baseElevee <- reactive({
-    calculTH()$basesNettes[1] > 4573
-  })
-  outputOptions(output, "baseElevee", suspendWhenHidden = FALSE)
-
-
-  ##############################################################################    
-  ##############################################################################  
-  ########## Onglet taxe
   
   output$calcul_baseNette = DT::renderDataTable({
     datatable(calculTH()$detail[1:3,], 
@@ -263,34 +274,22 @@ server <- function(input, output, session) {
   ########################
   # Tableau récapitulatif total, plafonnement, total final
   plafond <- reactive({
-    total = sum(calculTH()$cotisations, calculTH()$fraisGestion, calculTH()$cotisationsBaseElevee,
-                calculTH()$cotisationsResSecondaire, na.rm = TRUE)
-    degrevementCalcule = calculPlafond()$degrevementCalcule
-    degrevementApplique = calculPlafond()$degrevementApplique
+    calcul = data.frame("Montant" = c(euro2(calculPlafond()$montantThAvPlafonnement),  
+                                   euro2(calculPlafond()$montantThPourPlafond),
+                                   euro2(calculPlafond()$plafond),
+                                   euro2(calculPlafond()$degrevementCalcule),
+                                   euro2(calculPlafond()$montantThFinal)))
     
-    totalApPlafonnement = ifelse(degrevementCalcule>0, 
-                                 sum(calculTH()$cotisations, calculTH()$fraisGestion, na.rm = TRUE) 
-                                 - degrevementApplique,
-                                 total)
-
-    calculFinal = data.frame("Montant" = c(euro2(total),  
-                                           euro2(calculPlafond()$montantThPourPlafond),
-                                           euro2(calculPlafond()$plafond),
-                                           euro2(calculPlafond()$degrevementCalcule),
-                                           euro2(totalApPlafonnement)))
-    
-    rownames(calculFinal) = c("Taxe avant plafonnement", 
-                              "Taxe prise en compte pour le plafonnement", 
-                              "Plafond, si éligible au plafonnement",
-                              "Dégrèvement",
-                              "Taxe après application du plafonnement")
-
-    return(list(total = total, 
-                calculFinal = calculFinal))
+    rownames(calcul) = c("Taxe avant plafonnement", 
+                        "Taxe prise en compte pour le plafonnement", 
+                        "Plafond, si éligible au plafonnement",
+                        "Dégrèvement",
+                        "Taxe après application du plafonnement")
+    return(calcul)
   }) 
   
   output$plafonnement = DT::renderDataTable({
-    datatable(plafond()$calculFinal, options = list(dom = 't', "pageLength" = 40))
+    datatable(plafond(), options = list(dom = 't', "pageLength" = 40))
   })
   
 
@@ -339,7 +338,8 @@ server <- function(input, output, session) {
                              "La collectivité n'a pas voté d'abattement pour les deux premières personnes à charge.")
     explications[3] = ifelse(abattements[3] > 0,
                              "Abattement pour chaque personne à charge, au delà de 2.",
-                             "La collectivité n'a pas voté d'abattement pour les personnes à charge au delà de 2.")
+                             "La collectivité n'a pas voté d'abattement pour les 
+                             personnes à charge au delà de 2.")
     explications[4] = ifelse(abattements[4] > 0,
                              sprintf("Abattement sous conditions : votre rfr ne doit pas dépasser %s€ et
                               la valeur locative de votre bien ne doit pas excéder %s€.", seuils()$art1417_2, vlMax),
@@ -497,12 +497,9 @@ server <- function(input, output, session) {
     return(formatter_phrase(phrase))
   })
   
-  ## WARNING
-  ### Attention, ici, retirer BaseElevee du calcul somme si le plafond est atteint
   output$calculReforme2018 = renderText({
-    total = sum(calculTH()$cotisations, calculTH()$fraisGestion, calculTH()$cotisationsBaseElevee,
-                calculTH()$cotisationsResSecondaire, na.rm = TRUE)
-    reforme2018 = calculer_reforme2018(entree()$rfr, entree()$nbParts, total)
+    reforme2018 = calculer_reforme2018(entree()$rfr, entree()$nbParts, calculPlafond()$montantThFinal)
+    print(reforme2018)
     if (reforme2018$taux == 0){
       phrase = sprintf("Votre revenu fiscal de référence est trop élevé pour bénéficier d'un dégrèvement.
       <br>Compte tenu du nombre de parts de votre foyer, un dégrèvement n'est accordé que pour
@@ -510,9 +507,8 @@ server <- function(input, output, session) {
     }
     if (reforme2018$taux > 0){
       phrase = sprintf("Votre revenu fiscal de référence vous permet de bénéficier 
-                       d'un dégrèvement de %s%%.
-                       <br>Vous pourriez bénéficier d'une réduction du montant de 
-                       votre taxe d'habitation de %s€ (montant indicatif).", 
+                       d'un dégrèvement de votre taxe d'habitation de %s%%, soit 
+                       %s€ (taux et montant indicatifs).", 
                        round(100*reforme2018$taux), reforme2018$degrevement)
     }
     return(formatter_phrase(phrase))
