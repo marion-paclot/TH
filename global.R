@@ -149,8 +149,12 @@ afficher_seuil = function(tableSeuils, zone, annee, nombreParts){
 }
 
 # Logement modeste dans les DOM 
+# Certaines communes ont porté le taux de 40% à 50%. Pas d'indication dans le REI.
+# Il est donc possible qu'un logement soit exonéré car sa VL est comprise entre 40 et 50% de la VL communale
+# Par ailleurs dans certaines communes, la VL est manquante (car pas assez d'habitations)
 exo_logement_modeste_DOM = function(zone, vlBrute, reiCom){
-  return(zone != "Métropole" & vlBrute <= reiCom$L03)
+  vlCommune = reiCom$J11
+  return(zone != "Métropole" & vlBrute <= 0.4*vlCommune)
 }
 
 log = function (message) {
@@ -158,7 +162,7 @@ log = function (message) {
 }
 
 ################################################################################
-# Fonctions pour le calcul étape par étape
+# Fonctions pour le calcul de la TH étape par étape
 
 calculer_multiplicateur = function(nbPAC, rfr, seuil, vlBrute, situation, 
                                    alloc, reiCommune){
@@ -194,13 +198,10 @@ extraire_abattements = function(reiCommune, nomCol, typeRes){
   colnames(abattements) = c("commune", "syndicat", "interco", "TSE", "GEMAPI")
   rownames(abattements) = c("general", "pac12", "pac3", "special", "handicape")
   
-  # Cas des EPCI à fiscalité propre. Si on 
-  if (sum(abattements$interco) == 0){
-    abattements$interco = abattements$commune
-  }
-  if (sum(abattements$syndicat) == 0){
-    abattements$syndicat = abattements$commune
-  }
+  # # Cas des EPCI à fiscalité propre. Hypothèse que les i
+  # if (sum(abattements$interco) == 0){
+  #   abattements$interco = abattements$commune
+  # }
   return(abattements)
 }
 
@@ -261,16 +262,6 @@ calculer_taux_residence_secondaire = function(typeRes){
   return(taux)
 }
 
-calculer_plafonnement = function(rfr, zoneGeo, isf, nbParts, typeRes){
-  if (isf | typeRes == "secondaire" | rfr > calculer_seuil(grille_1417_2_CGI, zoneGeo, 2017, nbParts)){
-    return(NA)
-  }
-  abattement = calculer_seuil(grille_1414_A1_CGI, zoneGeo, 2017, nbParts)
-  
-  thBruteMax = round2(max(0,0.0344*(rfr - abattement)),0)
-  return(thBruteMax)
-}
-
 
 ################################
 detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCommune,
@@ -288,7 +279,6 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
   
   # Si les cotisations sont à 0, on met les abattements à 0
   abattements[,which(tauxCotisation == 0)] = rep(0,5)
-
   
   # Frais de gestion
   tauxFraisGestion = calculer_taux_gestion(typeRes, tauxGestion)
@@ -304,7 +294,6 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
                                       paste("Com. + interco. =\n", fraisGestion_affichage[1]))
   
   
-
   # Prélèvement pour base elevée - applicable uniquement aux communes
   tauxBaseElevee = calculer_taux_base_elevee(typeRes, basesNettes[1])
   cotisationsBaseElevee = calculer_prelevement(basesNettes[1], tauxBaseElevee, "casNormal")
@@ -316,13 +305,8 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
   cotisationsResSecondaire_affichage[1] = ifelse (typeRes == "secondaire", 
                                       paste("Com. + interco. =\n", cotisationsResSecondaire_affichage[1]),
                                       0)
-  
-  # Plafonnement cotisations brute + plafonnement
-  plafond = calculer_plafonnement(rfr, zoneGeo, isf, nbParts, typeRes)
-  
-
   # Tout en un tableau
-  detailCalcul = data.frame(
+  detail = data.frame(
     "Valeur locative brute" = euro2(vlBrute), 
     "Abattements" = euro(totauxAbattements), 
     "Base nette" = euro2(basesNettes), 
@@ -338,12 +322,13 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
   
   # Si les cotisations sont à 0%, on n'affiche pas les 3 premières lignes 
   for (i in which(tauxCotisation == 0)){
-    detailCalcul[i, c(1:3)] = ""
+    detail[i, c(1:3)] = ""
   }
-  detailCalcul = t(detailCalcul)
-  rownames(detailCalcul) = gsub("\\.", " ", rownames(detailCalcul))
-
-  return(list(detailCalcul = detailCalcul,
+  detail = t(detail)
+  rownames(detail) = gsub("\\.", " ", rownames(detail))
+  colnames(detail) = c("Commune", 'Syndicat', "Intercommunalité", 'TSE', "GEMAPI")
+  
+  return(list(detail = detail,
               vlBrute = vlBrute, 
               multiplicateurs = multiplicateurs,
               abattements = abattements,
@@ -357,9 +342,48 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
               tauxBaseElevee = tauxBaseElevee,
               cotisationsBaseElevee = cotisationsBaseElevee,
               tauxResSecondaire = tauxResSecondaire,
-              cotisationsResSecondaire = cotisationsResSecondaire,
-              plafond = plafond))
+              cotisationsResSecondaire = cotisationsResSecondaire
+              ))
 }
+
+calculer_plafonnement = function(rfr, zoneGeo, isf, nbParts, typeRes, 
+                                 cotisations, fraisGestion){
+
+  # Eligible au plafonnement
+  seuilEligibilite = calculer_seuil(grille_1417_2_CGI, zoneGeo, 2017, nbParts)
+  eligibilite = ! any(isf | typeRes == "secondaire" | rfr > seuilEligibilite)
+  
+  # Montant de l'abattement de rfr
+  abattement = ifelse(eligibilite, calculer_seuil(grille_1414_A1_CGI, zoneGeo, 2017, nbParts), 0)
+  
+  # RFR abattu
+  rfrAbattu = ifelse(eligibilite, max(rfr - abattement,0), rfr)
+  
+  # Montant de la TH max dans le cas du plafonnement
+  plafond = ifelse(eligibilite, round2(0.0344*rfrAbattu, 0), NA)
+  
+  # Montant du dégrèvement calculé != appliqué
+  montantThPourPlafond = sum(cotisations) + sum(fraisGestion)
+  degrevementCalcule = ifelse(eligibilite, montantThPourPlafond - plafond, 0)
+  degrevementApplique = ifelse (degrevementCalcule < 8, 0, degrevementCalcule)
+  
+  # Dans le cas où une cotisation pour base elevée était payée, 
+  # le plafonnement ouvre droit à son dégrèvement.
+  degrevementBaseElevee = eligibilite & degrevementCalcule>0
+  
+  return(list(seuilEligibilite = seuilEligibilite,
+              eligibilite = eligibilite,
+              abattement = abattement, 
+              rfrAbattu = rfrAbattu,
+              plafond = plafond, 
+              montantThPourPlafond = montantThPourPlafond,
+              degrevementCalcule = degrevementCalcule,
+              degrevementApplique = degrevementApplique,
+              degrevementBaseElevee = degrevementBaseElevee
+              ))
+}
+
+
 
 calculer_reforme2018 = function(rfr, nbParts, montantTotalTH){
   seuilBas = calculer_seuil(grille_1417_2bisa_CGI, "France", "2018", nbParts)

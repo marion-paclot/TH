@@ -142,8 +142,7 @@ navbarPage(
       type = "tabs",
       tabPanel("Taxe",
                br(),
-               verbatimTextOutput("exoneration"),
-               
+               tags$div(class="alert alert-info", textOutput("exoneration")),
                conditionalPanel(condition = "output.assujetti", hr()),
                conditionalPanel(condition = "output.assujetti", dataTableOutput("calcul_baseNette")),
                conditionalPanel(condition = "output.assujetti", hr()),
@@ -154,9 +153,9 @@ navbarPage(
       tabPanel("Abattements",
                br(),
                conditionalPanel(condition = "output.assujetti && input.residence == 'principale'", 
-                                verbatimTextOutput("vlNette")),
+                                tags$div(class="alert alert-info", textOutput("vlNette"))),
                conditionalPanel(condition = "input.residence != 'principale'", 
-                                verbatimTextOutput("pas_d_abattement")),
+                                tags$div(class="alert alert-info", textOutput("pas_d_abattement"))),
                
                br(),
                br(),
@@ -181,38 +180,41 @@ navbarPage(
                # Cotisations
                br(),
                conditionalPanel(condition = "output.assujetti", h4("Cotisations")),
-               conditionalPanel(condition = "output.assujetti", verbatimTextOutput("cotisations")),
-               conditionalPanel(condition = "output.assujetti", dataTableOutput("calcul_cotisation")),
+               conditionalPanel(condition = "output.assujetti", tags$div(class="alert alert-info", textOutput("cotisations"))),
+               conditionalPanel(condition = "output.assujetti", dataTableOutput("detail_cotisations")),
                
                # Frais de gestion
                conditionalPanel(condition = "output.assujetti", hr()),
                conditionalPanel(condition = "output.assujetti", h4("Frais de gestion")),
-               conditionalPanel(condition = "output.assujetti", verbatimTextOutput("fraisGestion")),
-               conditionalPanel(condition = "output.assujetti", dataTableOutput("calcul_fraisGestion")),
+               conditionalPanel(condition = "output.assujetti", tags$div(class="alert alert-info", textOutput("fraisGestion"))),
+               conditionalPanel(condition = "output.assujetti", dataTableOutput("detail_fraisGestion")),
                
                # Majoration pour base locative élevée
                conditionalPanel(condition = "output.baseElevee", hr()),
                conditionalPanel(condition = "output.baseElevee", h4("Majoration sur base locative élevée au profit de l'Etat")),
-               conditionalPanel(condition = "output.baseElevee", verbatimTextOutput("majorationBaseElevee")),
-               conditionalPanel(condition = "output.baseElevee", dataTableOutput("calcul_baseElevee")),
+               conditionalPanel(condition = "output.baseElevee", tags$div(class="alert alert-info", textOutput("majorationBaseElevee"))),
+               conditionalPanel(condition = "output.baseElevee", dataTableOutput("detail_majorationBaseElevee")),
                
                # Majoration RS au profit de l'Etat
                conditionalPanel(condition = "input.residence == 'secondaire'", hr()),
                conditionalPanel(condition = "input.residence == 'secondaire'", h4("Majoration résidence secondaire au profit de l'Etat")),
-               conditionalPanel(condition = "input.residence == 'secondaire'", verbatimTextOutput("majorationRsEtat")),
-               conditionalPanel(condition = "input.residence == 'secondaire'", dataTableOutput("calcul_prelevementRS"))
+               conditionalPanel(condition = "input.residence == 'secondaire'", tags$div(class="alert alert-info", textOutput("majorationRsEtat"))),
+               conditionalPanel(condition = "input.residence == 'secondaire'", dataTableOutput("detail_majorationRsEtat"))
                ),
       
       # Onglet Plafonnement
       tabPanel("Plafonnement",
                br(),
-               verbatimTextOutput("explicationPlafonnement")
+               tags$div(class="alert alert-info", textOutput("explicationPlafonnement")),
+               conditionalPanel(condition = "output.plafondActif",
+                                tags$div(class="alert alert-info", textOutput("applicationPlafonnement")))
       ),
+      
+      # Onglet Réforme 2018
       tabPanel("Réforme 2018",
                br(),
-               verbatimTextOutput("reforme2018"),
-               br(),
-               verbatimTextOutput("calculReforme2018")
+               tags$div(class="alert alert-info", textOutput("reforme2018")),
+               tags$div(class="alert alert-info", textOutput("calculReforme2018"))
       )
      )
     )
