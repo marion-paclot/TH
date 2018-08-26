@@ -144,12 +144,11 @@ navbarPage(
                br(),
                tags$div(class="alert alert-info", textOutput("exoneration")),
                conditionalPanel(condition = "output.assujetti", tags$div(class="alert alert-info", textOutput("valeurFinale"))),
+               conditionalPanel(condition = "output.plafondActif", tags$div(class="alert alert-info", textOutput("warningPlafonnement"))),
                conditionalPanel(condition = "output.assujetti", hr()),
                conditionalPanel(condition = "output.assujetti", dataTableOutput("calcul_baseNette")),
                conditionalPanel(condition = "output.assujetti", hr()),
-               conditionalPanel(condition = "output.assujetti", dataTableOutput("totaux")),
-               conditionalPanel(condition = "output.assujetti", hr()),
-               conditionalPanel(condition = "output.assujetti", dataTableOutput("plafonnement"))
+               conditionalPanel(condition = "output.assujetti", dataTableOutput("totaux"))
               ),
       
       tabPanel("Abattements",
@@ -158,16 +157,17 @@ navbarPage(
                                 tags$div(class="alert alert-info", textOutput("vlNette"))),
                conditionalPanel(condition = "input.residence != 'principale'", 
                                 tags$div(class="alert alert-info", textOutput("pas_d_abattement"))),
-               
-               br(),
-               br(),
+               hr(),
                conditionalPanel(condition = "output.assujetti && input.residence == 'principale'",
-                                radioButtons("ab_gph", "Element de calcul de la base d'imposition, détail des abattements",
-                                             choices = c("Commune" = "commune",
-                                                         "Syndicat" = "syndicat",
-                                                         "Intercommunalité" = "interco",
-                                                         "TSE" = "TSE", "GEMAPI" = "GEMAPI"), 
-                                             inline = TRUE)),
+                                radioButtons("ab_gph", "Calcul de la base locative nette",
+                                             choices = "", inline = TRUE),
+                                groupTooltip(id = "ab_gph", choice = "GEMAPI", 
+                                             title = "Gestion des milieux aquatiques et pr\\évention des inondations", trigger = "hover"),
+                                groupTooltip(id = "ab_gph", choice = "TSE", 
+                                             title = "Taxe sp\\éciale d\\'\\équipement", trigger = "hover")
+                                ),
+
+      
                conditionalPanel(condition = "output.assujetti && input.residence == 'principale'", 
                                 dataTableOutput("abattements")),
                br(),
@@ -209,7 +209,8 @@ navbarPage(
                br(),
                tags$div(class="alert alert-info", textOutput("explicationPlafonnement")),
                conditionalPanel(condition = "output.plafondActif",
-                                tags$div(class="alert alert-info", textOutput("applicationPlafonnement")))
+                                tags$div(class="alert alert-info", textOutput("applicationPlafonnement"))),
+               conditionalPanel(condition = "output.plafondActif", dataTableOutput("plafonnement"))
       ),
       
       # Onglet Réforme 2018

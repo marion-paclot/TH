@@ -4,7 +4,7 @@ server <- function(input, output, session) {
     showModal(modalDialog(
       title = "Bienvenue",
       "Cette application permet aux contribuables de comprendre le calcul de leur propre taxe d'habitation.
-      Des erreurs peuvent subsister, notamment dans le calcul du plafonnement. 
+      Des erreurs peuvent subsister, notamment dans le calcul du plafonnement ou de la taxe pour les logements vacants. 
       Les cas particuliers (hébergements collectifs par exemple) ne sont pas gérés par cette application.
       La valeur figurant sur votre avis d'imposition est celle qui fait foi.",
       easyClose = TRUE
@@ -78,7 +78,16 @@ server <- function(input, output, session) {
                          server = FALSE)
   })
   
-  #############################################################################
+  choix_collectivite = observe({
+    nomsCollectivite = list("Commune" = "commune",
+                           "Syndicat" = "syndicat",
+                           "Intercommunalité" = "interco",
+                           "TSE" = "TSE", "GEMAPI" = "GEMAPI")
+    nomsCollectivite = nomsCollectivite[which(calculTH()$tauxCotisation>0)]
+    updateRadioButtons(session, 'ab_gph', choices = nomsCollectivite, inline = TRUE)
+  })
+  
+  
   ## Bascule d'un onglet à l'autre quand clic sur une ligne spécifique du tableau calcul
   
   # observeEvent(input$calcul_cell_clicked, {
@@ -145,8 +154,6 @@ server <- function(input, output, session) {
   })
   outputOptions(output, "assujetti", suspendWhenHidden = FALSE)
   
-
-  
   ########################################################################
   #################################### CALCUL PRINCIPAUX
   
@@ -158,10 +165,6 @@ server <- function(input, output, session) {
   })
   
   calculPlafond <- reactive({
-    print(calculer_plafonnement(entree()$rfr, entree()$zoneGeo, 
-                                input$isf, entree()$nbParts, input$residence,
-                                calculTH()$cotisations, calculTH()$fraisGestion,
-                                calculTH()$cotisationsBaseElevee, calculTH()$cotisationsResSecondaire))
     calculer_plafonnement(entree()$rfr, entree()$zoneGeo, 
                           input$isf, entree()$nbParts, input$residence,
                           calculTH()$cotisations, calculTH()$fraisGestion,
@@ -243,11 +246,22 @@ server <- function(input, output, session) {
     return(formatter_phrase(phrase))
     })
   
-  
   output$valeurFinale = renderText({
-    phrase = sprintf("Le montant final de votre taxe d'habitation est de %s€.
-            <br>Si vous bénéficiez du plafonnement de la taxe, le calcul du plafonnement
-            peut être inexact (données publiques manquantes).", calculPlafond()$montantThFinal)
+    montantThFinal = calculPlafond()$montantThFinal
+    montantThReclamme = ifelse(montantThFinal <= 12, 0, montantThFinal)
+    phrase = sprintf("Le montant final de votre taxe d'habitation est de %s€.", calculPlafond()$montantThFinal)
+    if (montantThFinal<=12 & montantThFinal >0){
+      phrase = paste0(phrase, "<br>", "Ce montant étant inférieur à 12€, il ne vous est pas réclammé.
+                      Le montant du au titre de la taxe d'habitation est donc égal à 0€.")
+    }
+    formatter_phrase(phrase)
+  })
+  
+  output$warningPlafonnement = renderText({
+    phrase = "Vous avez bénéficié du plafonnement de la taxe d'habitation. Cependant, en l'absence
+    de la publication en open data de certaines données, il n'est pas possible de calculer une éventuelle
+    réduction du dégrèvement accordé au titre du plafonnement. Le montant final de votre taxe d'habitation
+    pourrait donc être supérieur à celui qui est ici affiché."
     formatter_phrase(phrase)
   })
   
@@ -262,10 +276,13 @@ server <- function(input, output, session) {
     totaux = data.frame("Montant" = c(sum(calculTH()$cotisations), 
                                       sum(calculTH()$fraisGestion),
                                      sum(calculTH()$cotisationsBaseElevee), 
-                                     sum(calculTH()$cotisationsResSecondaire)
-    ))
+                                     sum(calculTH()$cotisationsResSecondaire),
+                                    - calculPlafond()$degrevementApplique,
+                                    calculPlafond()$montantThFinal))
     rownames(totaux) = c("Cotisations", "Frais de gestion",
-                         "Cotisation base locative élevée", "Cotisation résidence secondaire")
+                         "Cotisation base locative élevée", "Cotisation résidence secondaire",
+                         "Dégrèvement lié au plafonnement",
+                         "Total")
     totaux$Montant[is.na(totaux$Montant)] = 0
     totaux$Montant = euro2(totaux$Montant)
     datatable(totaux, options = list(dom = 't', "pageLength" = 40))
@@ -274,16 +291,16 @@ server <- function(input, output, session) {
   ########################
   # Tableau récapitulatif total, plafonnement, total final
   plafond <- reactive({
-    calcul = data.frame("Montant" = c(euro2(calculPlafond()$montantThAvPlafonnement),  
-                                   euro2(calculPlafond()$montantThPourPlafond),
+    calcul = data.frame("Montant" = c(euro2(calculPlafond()$montantThPourPlafond),
                                    euro2(calculPlafond()$plafond),
-                                   euro2(calculPlafond()$degrevementCalcule),
+                                   paste0("-", euro2(calculPlafond()$degrevementCalcule)),
+                                   paste0("-", euro2(sum(calculTH()$cotisationsBaseElevee, na.rm = TRUE))),
                                    euro2(calculPlafond()$montantThFinal)))
     
-    rownames(calcul) = c("Taxe avant plafonnement", 
-                        "Taxe prise en compte pour le plafonnement", 
+    rownames(calcul) = c("Taxe prise en compte pour le plafonnement", 
                         "Plafond, si éligible au plafonnement",
-                        "Dégrèvement",
+                        "Dégrèvement lié au plafonnement",
+                        "Dégrèvement de la cotisation pour valeur locative élevée",
                         "Taxe après application du plafonnement")
     return(calcul)
   }) 
