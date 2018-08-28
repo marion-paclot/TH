@@ -412,8 +412,10 @@ server <- function(input, output, session) {
     
   output$expl_fraisGestion = renderText({
     phrase = "Cotisations x taux dépendant de la collectivité. 
+    <br>L'Etat est chargé de la collecte de la taxe d'habitation et perçoit les
+    frais de gestion. 
     <br>Les frais de gestion pour la commune et l'intercommunalité sont calculés en 
-    sommant les cotisations avant application du taux"
+    sommant les cotisations avant application du taux."
     return(formatter_phrase(phrase))
   })   
   output$detail_fraisGestion = DT::renderDataTable({
