@@ -90,22 +90,26 @@ navbarPage(
         placement = "right",
         trigger = "hover"
       ),
-      selectizeInput(
-        "nomDepartement",
-        "Département",
-        choices = unique(rei$LIBDEP),
-        selected = rei$LIBDEP[1],
-        multiple = FALSE,
-        options = NULL
-      ),
-      selectizeInput(
-        "nomCommune",
-        "Commune",
-        choices = "",
-        selected = "",
-        multiple = FALSE,
-        options = NULL
-      ),
+      div(
+        style = "display:inline-block ; margin-left: 20px;",
+        selectizeInput(
+          "nomDepartement",
+          "Département",
+          choices = unique(rei$LIBDEP),
+          selected = rei$LIBDEP[1],
+          multiple = FALSE,
+          options = NULL
+        )),
+      div(
+        style = "display:inline-block ; margin-left: 20px;",
+        selectizeInput(
+          "nomCommune",
+          "Commune",
+          choices = "",
+          selected = "",
+          multiple = FALSE,
+          options = NULL
+        )),
       
       div(
         style = "display:inline-block",
@@ -144,9 +148,7 @@ navbarPage(
                br(),
                tags$div(class="alert alert-info", textOutput("exoneration")),
                conditionalPanel(condition = "output.assujetti", tags$div(class="alert alert-info", textOutput("valeurFinale"))),
-               conditionalPanel(condition = "output.plafondActif", tags$div(class="alert alert-info", textOutput("warningPlafonnement"))),
-               conditionalPanel(condition = "output.assujetti", hr()),
-               conditionalPanel(condition = "output.assujetti", dataTableOutput("calcul_baseNette")),
+               conditionalPanel(condition = "output.plafondActif", tags$div(class="alert alert-warning", textOutput("warningPlafonnement"))),
                conditionalPanel(condition = "output.assujetti", hr()),
                conditionalPanel(condition = "output.assujetti", dataTableOutput("totaux"))
               ),
@@ -157,7 +159,11 @@ navbarPage(
                                 tags$div(class="alert alert-info", textOutput("vlNette"))),
                conditionalPanel(condition = "input.residence != 'principale'", 
                                 tags$div(class="alert alert-info", textOutput("pas_d_abattement"))),
-               hr(),
+               
+               conditionalPanel(condition = "output.assujetti", h4("Base locatives nettes retenues")),
+               conditionalPanel(condition = "output.assujetti", dataTableOutput("calcul_baseNette")),
+               conditionalPanel(condition = "output.assujetti", hr()),
+               
                conditionalPanel(condition = "output.assujetti && input.residence == 'principale'",
                                 radioButtons("ab_gph", "Calcul de la base locative nette",
                                              choices = "", inline = TRUE),
@@ -182,25 +188,25 @@ navbarPage(
                # Cotisations
                br(),
                conditionalPanel(condition = "output.assujetti", h4("Cotisations")),
-               conditionalPanel(condition = "output.assujetti", tags$div(class="alert alert-info", textOutput("cotisations"))),
+               conditionalPanel(condition = "output.assujetti", tags$div(class="alert alert-info", textOutput("expl_cotisations"))),
                conditionalPanel(condition = "output.assujetti", dataTableOutput("detail_cotisations")),
                
                # Frais de gestion
                conditionalPanel(condition = "output.assujetti", hr()),
                conditionalPanel(condition = "output.assujetti", h4("Frais de gestion")),
-               conditionalPanel(condition = "output.assujetti", tags$div(class="alert alert-info", textOutput("fraisGestion"))),
+               conditionalPanel(condition = "output.assujetti", tags$div(class="alert alert-info", textOutput("expl_fraisGestion"))),
                conditionalPanel(condition = "output.assujetti", dataTableOutput("detail_fraisGestion")),
                
                # Majoration pour base locative élevée
                conditionalPanel(condition = "output.baseElevee", hr()),
                conditionalPanel(condition = "output.baseElevee", h4("Majoration sur base locative élevée au profit de l'Etat")),
-               conditionalPanel(condition = "output.baseElevee", tags$div(class="alert alert-info", textOutput("majorationBaseElevee"))),
+               conditionalPanel(condition = "output.baseElevee", tags$div(class="alert alert-info", textOutput("expl_majorationBaseElevee"))),
                conditionalPanel(condition = "output.baseElevee", dataTableOutput("detail_majorationBaseElevee")),
                
                # Majoration RS au profit de l'Etat
                conditionalPanel(condition = "input.residence == 'secondaire'", hr()),
                conditionalPanel(condition = "input.residence == 'secondaire'", h4("Majoration résidence secondaire au profit de l'Etat")),
-               conditionalPanel(condition = "input.residence == 'secondaire'", tags$div(class="alert alert-info", textOutput("majorationRsEtat"))),
+               conditionalPanel(condition = "input.residence == 'secondaire'", tags$div(class="alert alert-info", textOutput("expl_majorationRsEtat"))),
                conditionalPanel(condition = "input.residence == 'secondaire'", dataTableOutput("detail_majorationRsEtat"))
                ),
       
@@ -222,8 +228,39 @@ navbarPage(
      )
     )
   ),
-  tabPanel("Aide",
-          tags$span("Trouver les textes de loi ...")),
+  tabPanel("Démarche",
+          tags$div("Cette application a pour objectif de permettre aux contribuables de
+                    comprendre comment a été calculée leur taxe d'habitation."),
+          tags$br(),
+          tags$div("L'onglet Simulation > Taxe vous donnera un rapide aperçu de la décomposition de votre taxe, 
+                   tandis que les autres onglets vous permettront de comprendre le calcul des différentes
+                   composantes de la taxe."),
+          tags$br(),
+          tags$div("L'application n'a été développée qu'à partir de documents et 
+                   données librement accessibles, si bien que le calcul de la 
+                   taxe n'est pas possible pour tous les cas et que des erreurs peuvent subsister.
+                   Par ailleurs, des cas très spécifiques (foyers, ambassadeurs) n'ont pas été traités,
+                   l'objectif étant de simuler la taxe du plus grand nombre sans refaire intégralement le travail de la DgFiP."),
+          tags$div("Quelques exemples :"),
+          tags$div(tags$ul(
+            tags$li(tags$span("Lorsqu'une commune réunit trop peu d'habitations, 
+                              la valeur locative moyenne de la commune n'est pas renseignée
+                              afin de préserver le secret statistique. Cette valeur est pourtant nécessaire au calcul de
+                              l'abattement spécial à la base.")),
+            tags$li(tags$span("Les habitations principales des DOM sont exonérées de taxe d'habitation
+                              si leur valeur locative est inférieure à 40% de la valeur locative moyenne de la commune.
+                              Ce taux peut être porté à 50% par décision de la commune, mais cette information est absente du REI.
+                              Aussi, certaines habitations sont-elles effectivement exonérées sans qu'on puisse le savoir.")),
+            tags$li(tags$span("Le dégrèvement lié au plafonnement peut être réduit lorsque les collectivités ont 
+                              modifié leur taux d'imposition ou leurs abattements. Cependant, 
+                              calculer exactement le plafond nécessite de disposer de valeurs
+                              pour les années 2000 (taux global 2000 corrigé) et 2003 (abattements de référence en 2003),
+                              qui ne sont pas disponibles en open data."))),
+            tags$br()
+            
+          )
+          ),
+
   footer = column(
     12,
     tags$i("Module développé par Marion"),

@@ -296,14 +296,14 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
   
   # Prélèvement pour base elevée - applicable uniquement aux communes
   tauxBaseElevee = calculer_taux_base_elevee(typeRes, basesNettes[1])
-  cotisationsBaseElevee = calculer_prelevement(basesNettes[1], tauxBaseElevee, "casNormal")
+  prelevementBaseElevee = calculer_prelevement(basesNettes[1], tauxBaseElevee, "casNormal")
   
   # Prélèvement résidense secondaire
   tauxResSecondaire = calculer_taux_residence_secondaire(typeRes)
-  cotisationsResSecondaire = calculer_prelevement(basesNettes, tauxResSecondaire, "casPart13")
-  cotisationsResSecondaire_affichage = cotisationsResSecondaire
-  cotisationsResSecondaire_affichage[1] = ifelse (typeRes == "secondaire", 
-                                      paste("Com. + interco. =\n", cotisationsResSecondaire_affichage[1]),
+  prelevementResSecondaire = calculer_prelevement(basesNettes, tauxResSecondaire, "casPart13")
+  prelevementResSecondaire_affichage = prelevementResSecondaire
+  prelevementResSecondaire_affichage[1] = ifelse (typeRes == "secondaire", 
+                                      paste("Com. + interco. =\n", prelevementResSecondaire_affichage[1]),
                                       0)
   # Tout en un tableau
   detail = data.frame(
@@ -315,9 +315,9 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
     "Taux de gestion" = paste0(100*tauxFraisGestion, "%"), 
     "Frais de gestion" = euro(fraisGestion_affichage),
     "Taux de cotisation pour base élevée" = paste0(100*tauxBaseElevee, "%"), 
-    "Cotisations pour base élevée" = euro(cotisationsBaseElevee),
+    "Prélèvement pour base élevée" = euro(prelevementBaseElevee),
     "Taux de cotisation pour résidence secondaire" = paste0(100*tauxResSecondaire, "%"), 
-    "Frais de cotisation pour résidence secondaire" = euro(cotisationsResSecondaire_affichage)
+    "Prélèvement sur résidence secondaire" = euro(prelevementResSecondaire_affichage)
   )
   
   # Si les cotisations sont à 0%, on n'affiche pas les 3 premières lignes 
@@ -336,35 +336,40 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
               basesNettes = basesNettes,
               tauxCotisation = tauxCotisation,
               cotisations = cotisations, 
+              totalCotisations = sum(cotisations, na.rm = TRUE),
               tauxFraisGestion = tauxFraisGestion,
               fraisGestion = fraisGestion,
+              totalFraisGestion = sum(fraisGestion, na.rm = TRUE),
               fraisGestion_affichage = fraisGestion_affichage,
               tauxBaseElevee = tauxBaseElevee,
-              cotisationsBaseElevee = cotisationsBaseElevee,
+              prelevementBaseElevee = prelevementBaseElevee,
+              totalPrelevementBaseElevee = sum(prelevementBaseElevee,na.rm = TRUE),
               tauxResSecondaire = tauxResSecondaire,
-              cotisationsResSecondaire = cotisationsResSecondaire
+              prelevementResSecondaire = prelevementResSecondaire,
+              totalPrelevementResSecondaire = sum(prelevementResSecondaire,na.rm = TRUE)
               ))
 }
 
 calculer_plafonnement = function(rfr, zoneGeo, isf, nbParts, typeRes, 
-                                 cotisations, fraisGestion, cotisationsBaseElevee,
-                                 cotisationsResSecondaire){
+                                 totalCotisations, totalFraisGestion, totalPrelevementBaseElevee,
+                                 totalPrelevementResSecondaire){
 
   # Eligible au plafonnement
   seuilEligibilite = calculer_seuil(grille_1417_2_CGI, zoneGeo, 2017, nbParts)
   eligibilite = ! any(isf | typeRes == "secondaire" | rfr > seuilEligibilite)
   
   # Montant de l'abattement de rfr
-  abattement = ifelse(eligibilite, calculer_seuil(grille_1414_A1_CGI, zoneGeo, 2017, nbParts), 0)
+  abattement = ifelse(eligibilite, calculer_seuil(grille_1414_A1_CGI, zoneGeo, 2017, nbParts), NA)
   
   # RFR abattu
   rfrAbattu = ifelse(eligibilite, max(rfr - abattement,0), rfr)
+  print(rfrAbattu)
   
   # Montant de la TH max dans le cas du plafonnement
   plafond = ifelse(eligibilite, round2(0.0344*rfrAbattu, 0), NA)
   
   # Montant du dégrèvement calculé != appliqué
-  montantThPourPlafond = sum(cotisations) + sum(fraisGestion)
+  montantThPourPlafond = totalCotisations + totalFraisGestion
   degrevementCalcule = ifelse(eligibilite, montantThPourPlafond - plafond, 0)
   degrevementApplique = ifelse (degrevementCalcule < 8, 0, degrevementCalcule)
   
@@ -373,12 +378,12 @@ calculer_plafonnement = function(rfr, zoneGeo, isf, nbParts, typeRes,
   degrevementBaseElevee = eligibilite & degrevementCalcule>0
   
   # Montant total avant plafonnement
-  montantThAvPlafonnement = sum(cotisations, fraisGestion, cotisationsBaseElevee,
-                                cotisationsResSecondaire, na.rm = TRUE)
+  montantThAvPlafonnement = totalCotisations + totalFraisGestion +
+    totalPrelevementBaseElevee + totalPrelevementResSecondaire
   
   # Montant total après application du plafonnement
   montantThFinal = ifelse(degrevementCalcule>0, 
-                          sum(cotisations, fraisGestion) - degrevementApplique,
+                          totalCotisations + totalFraisGestion - degrevementApplique,
                           montantThAvPlafonnement)
   
   return(list(seuilEligibilite = seuilEligibilite,

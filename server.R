@@ -165,10 +165,14 @@ server <- function(input, output, session) {
   })
   
   calculPlafond <- reactive({
-    calculer_plafonnement(entree()$rfr, entree()$zoneGeo, 
+    calcul = calculer_plafonnement(entree()$rfr, entree()$zoneGeo, 
                           input$isf, entree()$nbParts, input$residence,
-                          calculTH()$cotisations, calculTH()$fraisGestion,
-                          calculTH()$cotisationsBaseElevee, calculTH()$cotisationsResSecondaire)
+                          calculTH()$totalCotisations, 
+                          calculTH()$totalFraisGestion,
+                          calculTH()$totalPrelevementBaseElevee, 
+                          calculTH()$totalPrelevementResSecondaire)
+    print(calcul)
+    return(calcul)
   })
 
   output$baseElevee <- reactive({
@@ -265,48 +269,44 @@ server <- function(input, output, session) {
     formatter_phrase(phrase)
   })
   
-  output$calcul_baseNette = DT::renderDataTable({
-    datatable(calculTH()$detail[1:3,], 
-              options = list(dom = 't', "pageLength" = 40))
-  })
-  
   ########################
   # Tableau des totaux
+  
+  # Pour l'onglet taxe
   output$totaux = DT::renderDataTable({
-    totaux = data.frame("Montant" = c(sum(calculTH()$cotisations), 
-                                      sum(calculTH()$fraisGestion),
-                                     sum(calculTH()$cotisationsBaseElevee), 
-                                     sum(calculTH()$cotisationsResSecondaire),
+    totaux = data.frame("Montant" = c(calculTH()$totalCotisations,
+                                      calculTH()$totalFraisGestion,
+                                     calculTH()$totalPrelevementBaseElevee,
+                                     calculTH()$totalPrelevementResSecondaire,
                                     - calculPlafond()$degrevementApplique,
+                                    - calculTH()$totalPrelevementBaseElevee*calculPlafond()$degrevementBaseElevee,
                                     calculPlafond()$montantThFinal))
-    rownames(totaux) = c("Cotisations", "Frais de gestion",
-                         "Cotisation base locative élevée", "Cotisation résidence secondaire",
+    rownames(totaux) = c("Cotisations",
+                         "Frais de gestion",
+                         "Prélèvement pour base élevée",
+                         "Prélèvement sur résidence secondaire",
                          "Dégrèvement lié au plafonnement",
+                         "Dégrèvement prélèvement pour base élevée",
                          "Total")
     totaux$Montant[is.na(totaux$Montant)] = 0
     totaux$Montant = euro2(totaux$Montant)
     datatable(totaux, options = list(dom = 't', "pageLength" = 40))
   })
   
-  ########################
-  # Tableau récapitulatif total, plafonnement, total final
-  plafond <- reactive({
-    calcul = data.frame("Montant" = c(euro2(calculPlafond()$montantThPourPlafond),
-                                   euro2(calculPlafond()$plafond),
-                                   paste0("-", euro2(calculPlafond()$degrevementCalcule)),
-                                   paste0("-", euro2(sum(calculTH()$cotisationsBaseElevee, na.rm = TRUE))),
-                                   euro2(calculPlafond()$montantThFinal)))
-    
-    rownames(calcul) = c("Taxe prise en compte pour le plafonnement", 
-                        "Plafond, si éligible au plafonnement",
-                        "Dégrèvement lié au plafonnement",
-                        "Dégrèvement de la cotisation pour valeur locative élevée",
-                        "Taxe après application du plafonnement")
-    return(calcul)
-  }) 
-  
+  # Pour l'onglet plafonnement
   output$plafonnement = DT::renderDataTable({
-    datatable(plafond(), options = list(dom = 't', "pageLength" = 40))
+    calcul = data.frame("Montant" = c(calculPlafond()$montantThPourPlafond,
+                                      calculPlafond()$plafond,
+                                      - calculPlafond()$degrevementCalcule,
+                                      - calculTH()$totalPrelevementBaseElevee,
+                                      calculPlafond()$montantThFinal))
+    calcul$Montant = euro2(calcul$Montant)
+    rownames(calcul) = c("Taxe prise en compte pour le plafonnement", 
+                         "Plafond, si éligible au plafonnement",
+                         "Dégrèvement lié au plafonnement",
+                         "Dégrèvement du prélèvement pour base élevée",
+                         "Taxe après application du plafonnement")
+    datatable(calcul, options = list(dom = 't', "pageLength" = 40))
   })
   
 
@@ -318,8 +318,8 @@ server <- function(input, output, session) {
     phrase = "La base nette d'imposition (valeur locative nette) d'un bien immobilier 
     est calculée en soustrayant la somme des abattements à la valeur locative brute du bien.
     <br>Si ces abattements excèdent la valeur locative brute, la valeur locative nette est ramenée à 0.
-    <br>Chaque collectivité, si elle est à fiscalité propre, fixe le montant des 5 abattements, qui peut être un montant forfaitaire ou
-    un pourcentage de la valeur locative moyenne de la collectivité."
+    <br>Les collectivités à fiscalité propre peuvent fixer des abattements différents des abattements 
+    communaux. Un abattement est soit un montant forfaitaire, soit un pourcentage de la valeur locative moyenne de la collectivité."
     return(formatter_phrase(phrase))
   })
   
@@ -333,6 +333,11 @@ server <- function(input, output, session) {
     <br>La valeur locative nette ou base nette d'imposition est alors égale à la valeur 
                      locative brute du bien.", typeRes)
     return(formatter_phrase(phrase))
+  })
+  
+  output$calcul_baseNette = DT::renderDataTable({
+    datatable(calculTH()$detail[1:3,], 
+              options = list(dom = 't', "pageLength" = 40))
   })
   
   output$abattements <- DT::renderDataTable({
@@ -389,7 +394,7 @@ server <- function(input, output, session) {
   ##############################################################################  
   ########################### Onglet cotisation et frais de gestion
     
-  output$cotisations = renderText({
+  output$expl_cotisations = renderText({
     phrase = "Base nette d'imposition x taux de cotisation voté par la collectivité."
     if (input$residence == 'secondaire'){
       phrase2 = "Dans le cas d'une résidence secondaire, les communes peuvent décider
@@ -405,7 +410,7 @@ server <- function(input, output, session) {
               options = list(dom = 't', "pageLength" = 40))
   })
     
-  output$fraisGestion = renderText({
+  output$expl_fraisGestion = renderText({
     phrase = "Cotisations x taux dépendant de la collectivité. 
     <br>Les frais de gestion pour la commune et l'intercommunalité sont calculés en 
     sommant les cotisations avant application du taux"
@@ -416,7 +421,7 @@ server <- function(input, output, session) {
               options = list(dom = 't', "pageLength" = 40))
   })
   
-  output$majorationRsEtat = renderText({
+  output$expl_majorationRsEtat = renderText({
     phrase = "L'Etat perçoit une majoration de cotisation dans le cas des résidences secondaires,
     correspondant à 1,5% des cotisations dues à la commune et aux EPCI à fiscalité propre."
     return(formatter_phrase(phrase))
@@ -426,7 +431,7 @@ server <- function(input, output, session) {
               options = list(dom = 't', "pageLength" = 40))
   })
   
-  output$majorationBaseElevee = renderText({
+  output$expl_majorationBaseElevee = renderText({
     phrase = "L'Etat perçoit une majoration de cotisation pour les résidences dont la
     valeur locative nette communale dépasse 4573€. Pour les résidences principales, ce taux est de 2%.
     Pour les résidences secondaires dont la valeur locative nette est inférieure ou égale à 7622€, 
@@ -465,20 +470,19 @@ server <- function(input, output, session) {
       phrase = "Il n'y a pas de plafonnement pour les résidences secondaires"
     }
 
-
     # Cas où le contribuable est éligible au plafonnement
     if (calculPlafond()$eligibilite){
       rfrAbattu = calculPlafond()$rfrAbattu
       plafond = calculPlafond()$plafond
       phrase = sprintf("Votre revenu fiscal de référence est de %s€.
-                       Le calcul du plafond nécessite de calculer un revenu fiscal de référence, abattu d'un certain
+                       Le plafond est obtenu en calculant un revenu fiscal de référence, abattu d'un certain
                        montant tenant compte de votre département et du nombre de parts fiscales de votre foyer.
                        <br>Dans votre cas (département : %s, nombre de parts fiscales : %s), cet abattement est de %s€, 
                        et le rfr abattu est alors de %s€.
                        <br>Votre taxe d'habitation (cotisations + frais de gestion) ne doit pas excéder 3,44%% de 
                        ce rfr abattu, soit %s€.",
                        entree()$rfr, str_to_title(input$nomDepartement),  entree()$nbParts,
-                       seuils()$art1417_2, rfrAbattu, plafond)
+                       seuils()$art1414_A1, rfrAbattu, plafond)
     }
 
     return(formatter_phrase(phrase))
@@ -496,9 +500,7 @@ server <- function(input, output, session) {
         phrase = paste(phrase, "<br>Ce dégrèvement étant de moins de 8€, il n'est pas appliqué.")
       }
       if (degrevementBaseElevee){
-        phrase = paste(phrase, "<br>L'application du plafonnement vous permet par ailleurs d'être
-                       exonéré de la cotisation pour base locative élevée, à laquelle
-                       vous êtes normalement soumis.")
+        phrase = paste(phrase, "<br>De plus, vous êtes exonéré du prélèvement pour base élevée.")
         }
       }
     return(formatter_phrase(phrase))
