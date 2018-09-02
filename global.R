@@ -118,14 +118,12 @@ formatter_phrase = function(phrase){
 }
 
 # Afficher € après un montant
-euro = function(montant){
+euro = function(montant, allegement){
+  montant = format(montant, digits=9, decimal.mark=",",big.mark=" ")
   montant = paste(montant, "€")
-  montant = gsub("^0 €$", "-", montant)
-  return(montant)
-}
-
-euro2 = function(montant){
-  montant = paste(montant, "€")
+  if (allegement){
+    montant = gsub("^0 €$", "-", montant)
+  }
   return(montant)
 }
 
@@ -307,17 +305,17 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
                                       0)
   # Tout en un tableau
   detail = data.frame(
-    "Valeur locative brute" = euro2(vlBrute), 
-    "Abattements" = euro(totauxAbattements), 
-    "Base nette" = euro2(basesNettes), 
+    "Valeur locative brute" = euro(vlBrute, F), 
+    "Abattements" = euro(totauxAbattements, T), 
+    "Base nette" = euro(basesNettes, F), 
     "Taux d'imposition" = paste0(100*tauxCotisation, "%"), 
-    "Cotisations" = euro(cotisations), 
+    "Cotisations" = euro(cotisations, T), 
     "Taux de gestion" = paste0(100*tauxFraisGestion, "%"), 
-    "Frais de gestion" = euro(fraisGestion_affichage),
+    "Frais de gestion" = euro(fraisGestion_affichage, T),
     "Taux de cotisation pour base élevée" = paste0(100*tauxBaseElevee, "%"), 
-    "Prélèvement pour base élevée" = euro(prelevementBaseElevee),
+    "Prélèvement pour base élevée" = euro(prelevementBaseElevee, T),
     "Taux de cotisation pour résidence secondaire" = paste0(100*tauxResSecondaire, "%"), 
-    "Prélèvement sur résidence secondaire" = euro(prelevementResSecondaire_affichage)
+    "Prélèvement sur résidence secondaire" = euro(prelevementResSecondaire_affichage, T)
   )
   
   # Si les cotisations sont à 0%, on n'affiche pas les 3 premières lignes 
@@ -467,7 +465,7 @@ cascade_abattements = function(vlBrute, abattements, multiplicateur){
   # Si abattements, affichage des valeurs
   if (any(valeur>0)){
     g = g + geom_text(data=subset(calcul, type == "abattement" & valeur >0),
-                      aes(x=id,y=(start+end)/2,label=paste("-",euro(start-end))))
+                      aes(x=id,y=(start+end)/2,label=euro(-(start-end), T)))
   }
   
   g = ggplotly(g, tooltip = c("text"))

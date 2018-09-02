@@ -196,8 +196,9 @@ server <- function(input, output, session) {
     auquel vous avez droit."
     
     phraseSeuil = sprintf("<br>L'exonération est soumise à condition de revenu : 
-                          Le RFR d'un foyer de %s part%s ne doit pas dépasser %s€.", 
-                          entree()$nbParts, ifelse(entree()$nbParts>1, 's', ''), seuils()$art1417_1)
+                          Le RFR d'un foyer de %s part%s ne doit pas dépasser %s.", 
+                          entree()$nbParts, ifelse(entree()$nbParts>1, 's', ''), 
+                          euro(seuils()$art1417_1, F))
     
     phraseExoDom = "Vous habitez dans un département d'Outre-Mer et la valeur locative brute
     de votre logement est inférieure à 40% de la valeur locative moyenne de la commune.
@@ -253,10 +254,11 @@ server <- function(input, output, session) {
   output$valeurFinale = renderText({
     montantThFinal = calculPlafond()$montantThFinal
     montantThReclamme = ifelse(montantThFinal <= 12, 0, montantThFinal)
-    phrase = sprintf("Le montant final de votre taxe d'habitation est de %s€.", calculPlafond()$montantThFinal)
+    phrase = sprintf("Le montant final de votre taxe d'habitation est de %s.", 
+                     euro(calculPlafond()$montantThFinal, F))
     if (montantThFinal<=12 & montantThFinal >0){
-      phrase = paste0(phrase, "<br>", "Ce montant étant inférieur à 12€, il ne vous est pas réclammé.
-                      Le montant du au titre de la taxe d'habitation est donc égal à 0€.")
+      phrase = paste0(phrase, "<br>", "Ce montant étant inférieur à 12 €, il ne vous est pas réclammé.
+                      Vous ne devez rien au titre de la taxe d'habitation.")
     }
     formatter_phrase(phrase)
   })
@@ -289,7 +291,7 @@ server <- function(input, output, session) {
                          "Dégrèvement prélèvement pour base élevée",
                          "Total")
     totaux$Montant[is.na(totaux$Montant)] = 0
-    totaux$Montant = euro2(totaux$Montant)
+    totaux$Montant = euro(totaux$Montant, F)
     datatable(totaux, options = list(dom = 't', "pageLength" = 40))
   })
   
@@ -300,7 +302,7 @@ server <- function(input, output, session) {
                                       - calculPlafond()$degrevementCalcule,
                                       - calculTH()$totalPrelevementBaseElevee,
                                       calculPlafond()$montantThFinal))
-    calcul$Montant = euro2(calcul$Montant)
+    calcul$Montant = euro(calcul$Montant, F)
     rownames(calcul) = c("Taxe prise en compte pour le plafonnement", 
                          "Plafond, si éligible au plafonnement",
                          "Dégrèvement lié au plafonnement",
@@ -317,7 +319,7 @@ server <- function(input, output, session) {
   output$vlNette <- renderText({
     phrase = "La base nette d'imposition (valeur locative nette) d'un bien immobilier 
     est calculée en soustrayant la somme des abattements à la valeur locative brute du bien.
-    <br>Si ces abattements excèdent la valeur locative brute, la valeur locative nette est ramenée à 0.
+    <br>Si ces abattements excèdent la valeur locative brute, la valeur locative nette est ramenée à 0 €.
     <br>Les collectivités à fiscalité propre peuvent fixer des abattements différents des abattements 
     communaux. Un abattement est soit un montant forfaitaire, soit un pourcentage de la valeur locative moyenne de la collectivité."
     return(formatter_phrase(phrase))
@@ -363,15 +365,16 @@ server <- function(input, output, session) {
                              "La collectivité n'a pas voté d'abattement pour les 
                              personnes à charge au delà de 2.")
     explications[4] = ifelse(abattements[4] > 0,
-                             sprintf("Abattement sous conditions : votre rfr ne doit pas dépasser %s€ et
-                              la valeur locative de votre bien ne doit pas excéder %s€.", seuils()$art1417_2, vlMax),
+                             sprintf("Abattement sous conditions : votre rfr ne doit pas dépasser %s et
+                              la valeur locative de votre bien ne doit pas excéder %s.", 
+                                     euro(seuils()$art1417_2, F), euro(vlMax, F)),
                              "La collectivité n'a pas voté d'abattement en faveur des personnes de condition modeste.")
 
     explications[5] = ifelse(abattements[5] > 0,
                              "Abattement applicable aux foyers dans lesquels une personne est en situation de handicap, bénéficiaire de l'ASI ou de l'AAH.",
                              "La collectivité n'a pas voté d'abattement en faveur des personnes handicapées ou invalides.")
 
-    detailAbattements = data.frame(Abattements = euro(abattements),
+    detailAbattements = data.frame(Abattements = euro(abattements, T),
                              Multiplicateur = paste('x', multiplicateur),
                              Explication = explications)
     rownames(detailAbattements) = c("Général à la base", "PAC1-2", "PAC3", "Spécial", "Handicapé")
@@ -435,8 +438,8 @@ server <- function(input, output, session) {
   
   output$expl_majorationBaseElevee = renderText({
     phrase = "L'Etat perçoit une majoration de cotisation pour les résidences dont la
-    valeur locative nette communale dépasse 4573€. Pour les résidences principales, ce taux est de 2%.
-    Pour les résidences secondaires dont la valeur locative nette est inférieure ou égale à 7622€, 
+     locative nette communale dépasse 4 573 €. Pour les résidences principales, ce taux est de 2%.
+    Pour les résidences secondaires dont la valeur locative nette est inférieure ou égale à 7 622 €, 
     il est 1,2%, 1,7% au dela.
     <br>Si vous bénéficiez du plafonnement de votre taxe, cette majoration n'est pas due."
     return(formatter_phrase(phrase))
@@ -459,9 +462,10 @@ server <- function(input, output, session) {
     
     # Cas où il n'y a pas de plafonnement
     if (entree()$rfr > seuils()$art1417_2) {
-      phrase = sprintf("Votre revenu excèdant le seuil de %s€ (défini en fonction
+      phrase = sprintf("Votre revenu excèdant le seuil de %s (défini en fonction
                        de votre zone géographique et de la composition de votre foyer), vous ne bénéficiez
-                       pas du plafonnement de votre taxe d'habitation", seuils()$art1417_2)
+                       pas du plafonnement de votre taxe d'habitation", 
+                       euro(seuils()$art1417_2, F))
     }
     
     if (input$isf) {
@@ -476,15 +480,16 @@ server <- function(input, output, session) {
     if (calculPlafond()$eligibilite){
       rfrAbattu = calculPlafond()$rfrAbattu
       plafond = calculPlafond()$plafond
-      phrase = sprintf("Votre revenu fiscal de référence est de %s€.
+      phrase = sprintf("Votre revenu fiscal de référence est de %s.
                        Le plafond est obtenu en calculant un revenu fiscal de référence, abattu d'un certain
                        montant tenant compte de votre département et du nombre de parts fiscales de votre foyer.
-                       <br>Dans votre cas (département : %s, nombre de parts fiscales : %s), cet abattement est de %s€, 
-                       et le rfr abattu est alors de %s€.
+                       <br>Dans votre cas (département : %s, nombre de parts fiscales : %s), cet abattement est de %s, 
+                       et le rfr abattu est alors de %s.
                        <br>Votre taxe d'habitation (cotisations + frais de gestion) ne doit pas excéder 3,44%% de 
-                       ce rfr abattu, soit %s€.",
-                       entree()$rfr, str_to_title(input$nomDepartement),  entree()$nbParts,
-                       seuils()$art1414_A1, rfrAbattu, plafond)
+                       ce rfr abattu, soit %s.",
+                       euro(entree()$rfr, F), str_to_title(input$nomDepartement),  
+                       entree()$nbParts,
+                       euro(seuils()$art1414_A1, F), euro(rfrAbattu, F), euro(plafond, F))
     }
 
     return(formatter_phrase(phrase))
@@ -497,9 +502,9 @@ server <- function(input, output, session) {
     phrase = ''
     if (degrevementCalcule>0){
       phrase = sprintf("L'application du plafonnement vous permet de bénéficier
-        d'un dégrèvement de cotisation de %s€.", degrevementCalcule)
+        d'un dégrèvement de cotisation de %s.", euro(degrevementCalcule, F))
       if (degrevementCalcule <8){
-        phrase = paste(phrase, "<br>Ce dégrèvement étant de moins de 8€, il n'est pas appliqué.")
+        phrase = paste(phrase, "<br>Ce dégrèvement étant de moins de 8 €, il n'est pas appliqué.")
       }
       if (degrevementBaseElevee){
         phrase = paste(phrase, "<br>De plus, vous êtes exonéré du prélèvement pour base élevée.")
@@ -524,13 +529,13 @@ server <- function(input, output, session) {
     if (reforme2018$taux == 0){
       phrase = sprintf("Votre revenu fiscal de référence est trop élevé pour bénéficier d'un dégrèvement.
       <br>Compte tenu du nombre de parts de votre foyer, un dégrèvement n'est accordé que pour
-      un rfr inférieur à %s€.", seuils()$art1417_2bisb)
+      un rfr inférieur à %s.", euro(seuils()$art1417_2bisb, F))
     }
     if (reforme2018$taux > 0){
       phrase = sprintf("Votre revenu fiscal de référence vous permet de bénéficier 
                        d'un dégrèvement de votre taxe d'habitation de %s%%, soit 
-                       %s€ (taux et montant indicatifs).", 
-                       round(100*reforme2018$taux), reforme2018$degrevement)
+                       %s (taux et montant indicatifs).", 
+                       round(100*reforme2018$taux), euro(reforme2018$degrevement, F))
     }
     return(formatter_phrase(phrase))
   })
