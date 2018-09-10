@@ -1,273 +1,324 @@
-navbarPage(
-  title = "Taxe d'habitation",
-  tabPanel(
-    "Simulation",
-    sidebarPanel(
-      width = 4,
-      id = "form",
-      div(
-        style = "display:inline-block;",
-        numericInput("rfr", 
-                     label = "Revenu fiscal de référence",
-                     value = 0,
-                     min = 0,
-                     step = 1)
-      ),
-      div(
-        style = "display:inline-block ; margin-left: 10px;",
-        checkboxInput("rfrAbsent", "Pas de RFR", value = FALSE),
-        bsTooltip(
-          id = "rfrAbsent",
-          title = "Le RFR est \\à blanc sur l\\'avis d\\'imposition",
-          trigger = "hover"
-        )
-      ),
-      
-      checkboxInput("isf", "ISF", value = FALSE),
-      bsTooltip(id = "isf", title = tooltipIsf, trigger = "hover"),
-      checkboxGroupInput(
-        "alloc",
-        "Bénéficiaire de ces allocations",
-        choices = c("ASPA", "ASI", "AAH"),
-        inline = TRUE
-      ),
-      groupTooltip(id = "alloc", choice = "AAH", title = tooltipAah, trigger = "hover"),
-      
-      checkboxGroupInput(
-        "situation",
-        "Situation personnelle au 1er janvier 2017",
-        choices = c("Veuf", "Senior", "Handicapé", "Indigent"),
-        inline = TRUE
-      ),
-      groupTooltip(id = "situation", 
-                   choice = "Veuf", 
-                   title = tooltipVeuf, 
-                   trigger = "hover"),
-      groupTooltip(id = "situation", 
-                   choice = "Senior", 
-                   title = tooltipSenior, 
-                   trigger = "hover"),
-      groupTooltip(id = "situation", 
-                   choice = "Handicapé", 
-                   title = tooltipHandicape, 
-                   trigger = "hover"),
-      groupTooltip(id = "situation", 
-                   choice = "Indigent", 
-                   title = tooltipIndigent, 
-                   trigger = "hover"),
-
-      
-      div(
-        style = "display:inline-block",
-        numericInput(
-          "nbParts",
-          "Nombre de parts fiscales",
-          1,
-          min = 1,
-          max = 99,
-          step = 0.25
-        )
-      ),
-      bsTooltip(
-        id = "nbParts",
-        title = "Nombre de parts fiscales du ménage",
-        trigger = "hover"
-      ),
-      div(
-        style = "display:inline-block ; margin-left: 20px;",
-        numericInput(
-          "nbPAC",
-          "Nombre de personnes à charge",
-          0,
-          min = 0,
-          max = 99,
-          step = 0.5
-        )
-      ),
-      bsTooltip(
-        id = "nbPAC",
-        title = tooltipPac,
-        placement = "right",
-        trigger = "hover"
-      ),
-      div(
-        style = "display:inline-block ; margin-left: 20px;",
-        selectizeInput(
-          "nomDepartement",
-          "Département",
-          choices = unique(rei$LIBDEP),
-          selected = rei$LIBDEP[1],
-          multiple = FALSE,
-          options = NULL
-        )),
-      div(
-        style = "display:inline-block ; margin-left: 20px;",
-        selectizeInput(
-          "nomCommune",
-          "Commune",
-          choices = "",
-          selected = "",
-          multiple = FALSE,
-          options = NULL
-        )),
-      
-      div(
-        style = "display:inline-block",
-        numericInput(
-          "vlBrute",
-          "Valeur locative brute",
-          0,
-          min = 1,
-          step = 1
-        )
-      ),
-      div(
-        style = "display:inline-block; margin-left: 20px;",
-        radioButtons("residence", "Résidence",
-                     c("Principale" = "principale",
-                       "Secondaire" = "secondaire", 
-                       "Dépendance résidence principale" = "dépendance princ",
-                       "Logement vacant" = "vacant"),inline = T)
-      ),
-      numericInput(
-        "tauxMajRsCommune",
-        "Taux de majoration résidence secondaire appliqué par la commune (en %)",
-        0,
-        min = 0,
-        step = 1
-      ),
-      bsTooltip(id = "tauxMajRsCommune", title = tooltipMajRs, trigger = "hover")
-    ),
-    mainPanel(width = 8,
-              tags$head(tags$style(HTML("pre { white-space: pre-wrap; word-break: keep-all; }"))),
-              
-    tabsetPanel(
-      id = "tabs",
-      type = "tabs",
-      tabPanel("Taxe",
-               br(),
-               tags$div(class="alert alert-info", textOutput("exoneration")),
-               conditionalPanel(condition = "output.assujetti", tags$div(class="alert alert-info", textOutput("valeurFinale"))),
-               conditionalPanel(condition = "output.plafondActif", tags$div(class="alert alert-warning", textOutput("warningPlafonnement"))),
-               conditionalPanel(condition = "output.assujetti", hr()),
-               conditionalPanel(condition = "output.assujetti", dataTableOutput("totaux"))
-              ),
-      
-      tabPanel("Abattements",
-               br(),
-               conditionalPanel(condition = "output.assujetti && input.residence == 'principale'", 
-                                tags$div(class="alert alert-info", textOutput("vlNette"))),
-               conditionalPanel(condition = "input.residence != 'principale'", 
-                                tags$div(class="alert alert-info", textOutput("pas_d_abattement"))),
-               
-               conditionalPanel(condition = "output.assujetti", h4("Base locatives nettes retenues")),
-               conditionalPanel(condition = "output.assujetti", dataTableOutput("calcul_baseNette")),
-               conditionalPanel(condition = "output.assujetti", hr()),
-               
-               conditionalPanel(condition = "output.assujetti && input.residence == 'principale'",
-                                radioButtons("ab_gph", "Calcul de la base locative nette",
-                                             choices = "", inline = TRUE),
-                                groupTooltip(id = "ab_gph", choice = "GEMAPI", 
-                                             title = "Gestion des milieux aquatiques et pr\\évention des inondations", trigger = "hover"),
-                                groupTooltip(id = "ab_gph", choice = "TSE", 
-                                             title = "Taxe sp\\éciale d\\'\\équipement", trigger = "hover")
-                                ),
-
-      
-               conditionalPanel(condition = "output.assujetti && input.residence == 'principale'", 
-                                dataTableOutput("abattements")),
-               br(),
-               conditionalPanel(condition = "output.assujetti && input.residence == 'principale'", 
-                                plotlyOutput("cascadeAbattements"))
-
-               ),
-      
-      ### Onglet cotisations, frais de gestion, 
-      tabPanel("Cotisations et frais de gestion",
-               
-               # Cotisations
-               br(),
-               conditionalPanel(condition = "output.assujetti", h4("Cotisations")),
-               conditionalPanel(condition = "output.assujetti", tags$div(class="alert alert-info", textOutput("expl_cotisations"))),
-               conditionalPanel(condition = "output.assujetti", dataTableOutput("detail_cotisations")),
-               
-               # Frais de gestion
-               conditionalPanel(condition = "output.assujetti", hr()),
-               conditionalPanel(condition = "output.assujetti", h4("Frais de gestion")),
-               conditionalPanel(condition = "output.assujetti", tags$div(class="alert alert-info", textOutput("expl_fraisGestion"))),
-               conditionalPanel(condition = "output.assujetti", dataTableOutput("detail_fraisGestion")),
-               
-               # Majoration pour base locative élevée
-               conditionalPanel(condition = "output.baseElevee", hr()),
-               conditionalPanel(condition = "output.baseElevee", h4("Majoration sur base locative élevée au profit de l'Etat")),
-               conditionalPanel(condition = "output.baseElevee", tags$div(class="alert alert-info", textOutput("expl_majorationBaseElevee"))),
-               conditionalPanel(condition = "output.baseElevee", dataTableOutput("detail_majorationBaseElevee")),
-               
-               # Majoration RS au profit de l'Etat
-               conditionalPanel(condition = "input.residence == 'secondaire'", hr()),
-               conditionalPanel(condition = "input.residence == 'secondaire'", h4("Majoration résidence secondaire au profit de l'Etat")),
-               conditionalPanel(condition = "input.residence == 'secondaire'", tags$div(class="alert alert-info", textOutput("expl_majorationRsEtat"))),
-               conditionalPanel(condition = "input.residence == 'secondaire'", dataTableOutput("detail_majorationRsEtat"))
-               ),
-      
-      # Onglet Plafonnement
-      tabPanel("Plafonnement",
-               br(),
-               tags$div(class="alert alert-info", textOutput("explicationPlafonnement")),
-               conditionalPanel(condition = "output.plafondActif",
-                                tags$div(class="alert alert-info", textOutput("applicationPlafonnement"))),
-               conditionalPanel(condition = "output.plafondActif", dataTableOutput("plafonnement"))
-      ),
-      
-      # Onglet Réforme 2018
-      tabPanel("Réforme 2018",
-               br(),
-               tags$div(class="alert alert-info", textOutput("reforme2018")),
-               tags$div(class="alert alert-info", textOutput("calculReforme2018"))
-      )
-     )
-    )
+ui <- dashboardPage(
+  
+  dashboardHeader(
+    # Ligne d'entête
+    title = "Taxe d'habitation",
+    tags$li(
+      class = "dropdown",
+      actionLink(inputId = "pourquoi", label = "Pourquoi cette application ?"))
   ),
-  tabPanel("Démarche",
-          tags$div("Cette application a pour objectif de permettre aux contribuables de
-                    comprendre comment a été calculée leur taxe d'habitation."),
-          tags$br(),
-          tags$div("L'onglet Simulation > Taxe vous donnera un rapide aperçu de la décomposition de votre taxe, 
-                   tandis que les autres onglets vous permettront de comprendre le calcul des différentes
-                   composantes de la taxe."),
-          tags$br(),
-          tags$div("L'application n'a été développée qu'à partir de documents et 
-                   données librement accessibles, si bien que le calcul de la 
-                   taxe n'est pas possible pour tous les cas et que des erreurs peuvent subsister.
-                   Par ailleurs, des cas très spécifiques (foyers, ambassadeurs) n'ont pas été traités,
-                   l'objectif étant de simuler la taxe du plus grand nombre sans refaire intégralement le travail de la DgFiP."),
-          tags$div("Quelques exemples :"),
-          tags$div(tags$ul(
-            tags$li(tags$span("Lorsqu'une commune réunit trop peu d'habitations, 
-                              la valeur locative moyenne de la commune n'est pas renseignée
-                              afin de préserver le secret statistique. Cette valeur est pourtant nécessaire au calcul de
-                              l'abattement spécial à la base.")),
-            tags$li(tags$span("Les habitations principales des DOM sont exonérées de taxe d'habitation
-                              si leur valeur locative est inférieure à 40% de la valeur locative moyenne de la commune.
-                              Ce taux peut être porté à 50% par décision de la commune, mais cette information est absente du REI.
-                              Aussi, certaines habitations sont-elles effectivement exonérées sans qu'on puisse le savoir.")),
-            tags$li(tags$span("Le dégrèvement lié au plafonnement peut être réduit lorsque les collectivités ont 
-                              modifié leur taux d'imposition ou leurs abattements. Cependant, 
-                              calculer exactement le plafond nécessite de disposer de valeurs
-                              pour les années 2000 (taux global 2000 corrigé) et 2003 (abattements de référence en 2003),
-                              qui ne sont pas disponibles en open data."))),
-            tags$br()
-            
+  
+  dashboardSidebar(
+    collapsed = FALSE,
+    # Menu de gauche
+    sidebarMenu(
+      id = "tabs",
+      menuItem("Vos informations", tabName = "home", icon = icon("user-circle")),
+      menuItem("Résultat", tabName = "resultat", icon = icon("tasks")),
+      menuItem("Abattements", tabName = "abattements", icon = icon("sort-amount-desc")),
+      menuItem("Détail", tabName = "detail", icon = icon("table")),
+      menuItem("Réforme 2018", tabName = "reforme2018", icon = icon("table"))),
+    # Liens en bas à gauche
+    div(
+      class = "credits",
+      tags$i("Module développé par Marion"),
+      tags$br(),
+      tags$a(href = "https://github.com/marion-paclot/TH/", "Voir le code source"),
+      tags$br(),
+      tags$a(href = "https://github.com/marion-paclot/TH/issues", "Signaler une erreur ou proposer une amélioration"))
+  ),
+  
+  dashboardBody(
+    
+    tags$head(
+      # Lien vers le fichier CSS de l'application
+      tags$link(rel = "stylesheet", type = "text/css", href = "/app.css")),
+  
+    tabItems(
+    
+      # Onglet principal de saisie des informations ============================
+      tabItem(
+        tabName = "home",
+        mainPanel(
+          width = 12,
+          div(
+            class = "title",
+            uiOutput('introduction')
+            ),
+          hr(),
+          h4('MES INFORMATIONS'),
+          h5("Vous pourrez modifier les paramètres plus tard"),
+          wellPanel(
+            fluidRow(
+              column(
+                width = 6,
+                h4('Ma situation'),
+                checkboxGroupInput(
+                  "alloc",
+                  "Bénéficiaire de ces allocations",
+                  choices = c("ASPA", "ASI", "AAH"),
+                  inline = FALSE
+                ),
+                groupTooltip(id = "alloc", choice = "AAH", title = tooltipAah),
+                groupTooltip(id = "alloc", choice = "ASPA", title = tooltipAspa),
+                groupTooltip(id = "alloc", choice = "ASI", title = tooltipAsi),
+                
+                checkboxGroupInput(
+                  "situation",
+                  "Situation personnelle au 1er janvier 2017",
+                  choices = c("Veuf", "Senior", "Handicapé", "Indigent"),
+                  inline = FALSE
+                ),
+                groupTooltip(id = "situation", choice = "Veuf", title = tooltipVeuf),
+                groupTooltip(id = "situation", choice = "Senior", title = tooltipSenior),
+                groupTooltip(id = "situation", choice = "Handicapé", title = tooltipHandicape),
+                groupTooltip(id = "situation", choice = "Indigent", title = tooltipIndigent),
+                
+                fluidRow(
+                  column(
+                    width = 6,
+                    numericInput(
+                      "rfr",
+                      label = "Revenu fiscal de référence",
+                      value = 12000,
+                      min = 0,
+                      step = 1
+                    ),
+                    myTooltip(id = "rfr", title = tooltipRfr),
+                    
+                    div(
+                      style = "margin-top: -12px; margin-bottom: 15px;",
+                      actionLink(inputId = "rfrAbsent", label = "RFR à blanc sur mon avis")
+                    )
+                  ),
+                  column(
+                    width = 6,
+                    div(
+                      style = "margin-top: 30px;",
+                      checkboxInput("isf", "ISF", value = FALSE),
+                      myTooltip(id = "isf", title = tooltipIsf)
+                    )
+                  )
+                ),
+                fluidRow(
+                  column(
+                    width = 6,
+                    numericInput(
+                      "nbParts",
+                      "Nombre de parts fiscales",
+                      1,
+                      min = 1,
+                      max = 99,
+                      step = 0.25)
+                    ),
+                  myTooltip(id = "nbParts", title = "Nombre de parts fiscales du ménage"),
+                  
+                  column(
+                    width = 6,
+                    numericInput(
+                      "nbPAC",
+                      "Nombre de personnes à charge",
+                      0,
+                      min = 0,
+                      max = 99,
+                      step = 0.5),
+                    myTooltip(id = "nbPAC", title = tooltipPac)
+                    )
+                )
+              ),
+              
+              column(
+                width = 6,
+                h4('Mon habitation'),
+                fluidRow(
+                  column(
+                    width = 5,
+                    selectizeInput(
+                      "nomDepartement",
+                      "Département",
+                      choices = unique(rei$LIBDEP),
+                      selected = rei$LIBDEP[1],
+                      multiple = FALSE,
+                      options = NULL
+                    )),
+                  column(
+                    width = 7,
+                    selectizeInput(
+                      "nomCommune",
+                      "Commune",
+                      choices = "",
+                      selected = "",
+                      multiple = FALSE,
+                      options = NULL
+                    ))
+                ),
+                numericInput(
+                  "vlBrute",
+                  "Valeur locative brute",
+                  value = 1200,
+                  min = 1,
+                  step = 1
+                ),
+                myTooltip(id = "vlBrute", title = tooltipVlb),
+                
+                radioButtons(
+                  "residence",
+                  "Résidence",
+                  c(
+                    "Principale" = "principale",
+                    "Secondaire" = "secondaire",
+                    "Dépendance résidence principale" = "dépendance princ",
+                    "Logement vacant" = "vacant"
+                  ),
+                  inline = FALSE
+                ),
+                numericInput(
+                  "tauxMajRsCommune",
+                  "Majoration résidence secondaire (en %)",
+                  0,
+                  min = 0,
+                  step = 1
+                ),
+                myTooltip(id = "tauxMajRsCommune", title = tooltipMajRs)
+              )
+            ),
+            br(),
+            div(
+              style = "text-align: center",
+              actionButton("lancement", "Lancer le simulateur")
+            )
           )
-          ),
+        ),
+        # Permet de prolonger la toile de fond jusqu'en bas
+        div(style = "clear: both")
+      ),
+    
+      # Résultat majeur ========================================================
+      tabItem(
+        tabName = "resultat",
+        mainPanel(
+          width = 12,
+          fluidRow(
+            uiOutput("totalBox"),
+            column(width = 6,
+              tags$div(class="alert alert-info",
+                       uiOutput("explicationAssujettissement")),
+              conditionalPanel('output.montantRameneA0',
+                               tags$div(class="alert alert-info", uiOutput('montantAnnule'))
+                       )
+            )
+            ),
+          fluidRow(
+            conditionalPanel(
+              condition = "output.assujetti && input.vlBrute == 0", 
+              tags$div(class="alert alert-info",
+                       uiOutput("vlBruteNulle_resultat")
+                       )
+              )
+            )
+        )
+      ),
+      
+      # Abattements ============================================================
+      tabItem(
+        tabName = "abattements",
+        mainPanel(
+          width = 12,
+          # Explication des abattements
+          conditionalPanel(
+            condition = "output.assujetti && input.residence == 'principale'", 
+            tags$div(class="alert alert-info", uiOutput("vlNette"))),
+          # Cas des habitations hors résidences principales
+          conditionalPanel(
+            condition = "input.residence != 'principale'", 
+            tags$div(class="alert alert-info", textOutput("pas_d_abattement"))),
+          # Si la valeur locative n'est pas renseignée
+          conditionalPanel(
+            condition = "output.assujetti && input.vlBrute == 0", 
+            fluidRow(uiOutput("vlBruteNulle_abattements"))),
+          # Dans le cas où la valeur locative est renseignée
+          conditionalPanel(
+            condition = "output.assujetti && input.vlBrute > 0",
+            div(
+              h4("Base locatives nettes retenues"),
+              dataTableOutput("calcul_baseNette"),
+              hr())),
+          conditionalPanel(
+            condition = "output.assujetti && input.residence == 'principale' && input.vlBrute > 0",
+            div(
+              radioButtons("ab_gph", "Calcul de la base locative nette", choices = "", inline = TRUE),
+              dataTableOutput("abattements"),
+              br(),
+              plotlyOutput("cascadeAbattements"))),
+          groupTooltip(id = "ab_gph", choice = "GEMAPI", title = tooltipGemapi),
+          groupTooltip(id = "ab_gph", choice = "TSE", title = tooltipTse)
+        ),
+        # Permet de prolonger la toile de fond jusqu'en bas
+        div(style = "clear: both")
+      ),
+    
 
-  footer = column(
-    12,
-    tags$i("Module développé par Marion"),
-    tags$br(),
-    tags$a(href = "https://github.com/marion-paclot/TH/", "Voir le code source"),
-    tags$br(),
-    tags$a(href = "https://github.com/marion-paclot/TH/issues", "Signaler une erreur ou proposer une amélioration")
-    # tags$a(href = "https://www.etalab.gouv.fr/fr/", "Etalab")
+      # Boites dynamiques détaillant le calcul =================================
+      tabItem(
+        tabName = "detail",
+        mainPanel(
+          width = 12,
+          # Boites de décomposition
+          fluidRow(
+            tags$div(class="col-md-5ths col-xs-6", uiOutput("cotisationsBox")),
+            tags$div(class="col-md-5ths col-xs-6", uiOutput("fraisBox")),
+            tags$div(class="col-md-5ths col-xs-6", uiOutput("baseEleveeBox")),
+            tags$div(class="col-md-5ths col-xs-6", uiOutput("residenceSecondaireBox")),
+            tags$div(class="col-md-5ths col-xs-6", uiOutput("plafonnementBox"))
+                   ),
+          fluidRow( 
+                   # Titre
+                   uiOutput("titreCalcul"),
+                   # Tableau et explications affichés selon la boite sélectionnée
+                   
+                   tags$div(class = "alert alert-info", uiOutput("calculExplication")),
+                   conditionalPanel(condition = "output.beneficiairePlafond & output.boxActiveBaseElevee", 
+                                    tags$div(class="alert alert-info", uiOutput("exonerationBaseElevee"))
+                                    ),
+                   conditionalPanel(condition = "output.boxInactivePlafonnement",
+                                    dataTableOutput("calculDetaille")
+                                    ),
+                   conditionalPanel(condition = "output.boxActivePlafonnement & output.beneficiairePlafond",
+                                    column(width = 6, plotOutput("graphPlafond")),
+                                    column(width = 6, tags$div(class="alert alert-info", uiOutput("explicationPlafonnement")))
+                                    )
+                   ),
+          fluidRow(
+            conditionalPanel(condition = "output.boxActivePlafonnement & output.beneficiairePlafond",
+                             tags$div(class="alert alert-info", uiOutput("calculPlafonnement")),
+                             tags$div(class="alert alert-info", uiOutput("resultatPlafonnement"))
+                             )
+                  
+                  )
+            
+        ),
+        div(style = "clear: both")
+      ),
+      
+      # Réforme 2018 ===========================================================
+      tabItem(
+        tabName = "reforme2018",
+        mainPanel(
+          width = 12,
+          tags$div(
+            class = "alert alert-info", 
+            uiOutput("explicationReforme2018")),
+          fluidRow(
+            column(width = 4, uiOutput("degrevement2018")),
+            column(width = 4, uiOutput("tauxDegrevement2018")),
+            column(width = 4, uiOutput("montant2018"))
+            ),
+          h3("Taux de dégrèvement accordé en fonction du revenu fiscal de référence"),
+          h5("Cette courbe dépend du nombre de parts fiscales."),
+          plotlyOutput("courbeDegrevement2018")
+        ),
+        div(style = "clear: both")
+      )
+    )
   )
 )

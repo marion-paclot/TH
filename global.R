@@ -1,4 +1,4 @@
-library(shiny)
+          library(shiny)
 library(shinyBS) # Additional Bootstrap Controls
 library(DT)
 library(ggplot2)
@@ -6,23 +6,38 @@ library(plotly)
 library(Cairo)
 library(plyr)
 library(stringr)
+library(shinydashboard)
+library(Cairo)
 
-options(shiny.reactlog = T, stringsAsFactors = FALSE)
+options(shiny.usecairo=T, shiny.reactlog = T, stringsAsFactors = FALSE)
+source('components/modal_pourquoi.R', encoding='UTF-8')
+source('components/modal_rfr.R', encoding='UTF-8')
+source('components/text_exoneration.R', encoding='UTF-8')
+
+
 
 # Fichier de recensement des éléments d'imposition à la fiscalité directe locale
 # Seule les colonnes relatives à la TH ont été conservées
-rei = read.csv2("REI_TH.csv", fileEncoding = "UTF-8")
+rei = read.csv2("data/REI_TH.csv", fileEncoding = "UTF-8")
 rei = subset(rei, ! LIBCOM %in% c("SAINT-BARTHELEMY", "SAINT-MARTIN"))
 url_rei = "https://www.data.gouv.fr/fr/datasets/impots-locaux-fichier-de-recensement-des-elements-dimposition-a-la-fiscalite-directe-locale-rei-3/"
 dep = unique(rei$LIBDEP)
 
+### Allègement du rei
+# rei = rei[, c("LIBCOM", "LIBDEP", "IDCOM", "COMTLV",
+#               "J51A", "J31A", "J41A", "J61A", "J61HA",
+#               "J53A", "J33A", "J43A", "J63A", "J63HA", 
+#               "J21", "J22", "J23", 
+#               "H12", "H22", "H32", "H52", "H52A", "H52cGEMAPI", "H52gGEMAPI")]
+# write.csv2(rei, "data/REI_TH_LIGHT.csv", row.names = F)
+
 # Seuil d'éligibilité du CGI
-grille_1417_1_CGI = read.csv2("seuils_1417-1-CGI.csv", fileEncoding = "UTF-8")
-grille_1417_1bis_CGI = read.csv2("seuils_1417-1bis-CGI.csv", fileEncoding = "UTF-8")
-grille_1417_2_CGI = read.csv2("seuils_1417-2-CGI.csv", fileEncoding = "UTF-8")
-grille_1414_A1_CGI = read.csv2("seuils_1414-A-1-CGI.csv", fileEncoding = "UTF-8")
-grille_1417_2bisa_CGI = read.csv2("seuils_1417-2bisa-CGI.csv", fileEncoding = "UTF-8")
-grille_1417_2bisb_CGI = read.csv2("seuils_1417-2bisb-CGI.csv", fileEncoding = "UTF-8")
+grille_1417_1_CGI = read.csv2("data/seuils_1417-1-CGI.csv", fileEncoding = "UTF-8")
+grille_1417_1bis_CGI = read.csv2("data/seuils_1417-1bis-CGI.csv", fileEncoding = "UTF-8")
+grille_1417_2_CGI = read.csv2("data/seuils_1417-2-CGI.csv", fileEncoding = "UTF-8")
+grille_1414_A1_CGI = read.csv2("data/seuils_1414-A-1-CGI.csv", fileEncoding = "UTF-8")
+grille_1417_2bisa_CGI = read.csv2("data/seuils_1417-2bisa-CGI.csv", fileEncoding = "UTF-8")
+grille_1417_2bisb_CGI = read.csv2("data/seuils_1417-2bisb-CGI.csv", fileEncoding = "UTF-8")
 
 # Liens vers les articles du CGI
 url_1417 = "https://www.legifrance.gouv.fr/affichCodeArticle.do?idArticle=LEGIARTI000027517723&cidTexte=LEGITEXT000006069577"
@@ -30,36 +45,43 @@ url_1414 = "https://www.legifrance.gouv.fr/affichCodeArticle.do?cidTexte=LEGITEX
 
 
 ###################################################
+myTooltip = function (id, title) {
+  # On remplace la fonction bsTooltip par celle-ci qui prend soin de retirer les 
+  # guillemets simples et de les remplacer par leur code HTML.
+  bsTooltip(id = id, title = gsub("'", "&#39;", title), trigger = "hover")
+}
+
 # Tooltip d'explication
-tooltipVeuf = "Veuf ou veuve, sans condition d\\'\\âge"
+tooltipVeuf = "Veuf ou veuve, sans condition d'âge"
 tooltipSenior = "Plus de 60 ans"
-tooltipHandicape = "Au moins une personne du foyer doit \\être dans la situation suivante \\: 
-b\\én\\éficiaire de l\\'ASI ou de l\\'AAH, 
-atteint d\\'une infirmit\\é ou invalidit\\é l\\'emp\\êchant de subvenir par son travail aux n\\écessit\\és de l\\'existence,
-titulaire d\\'une carte mobilit\\é inclusion avec la mention invalidit\\é.
-Pour b\\én\\éficier de ce statut, la demande doit avoir \\ét\\é adress\\ée avant le 1er janvier de l\\'ann\\ée concern\\ée"
+tooltipHandicape = "Au moins une personne du foyer doit être dans la situation suivante : 
+bénéficiaire de l'ASI ou de l'AAH, 
+atteint d'une infirmité ou invalidité l'empêchant de subvenir par son travail aux nécessités de l'existence,
+titulaire d'une carte mobilité inclusion avec la mention invalidité.
+Pour bénéficier de ce statut, la demande doit avoir été adressée avant le 1er janvier de l'année concernée"
 tooltipHandicape = gsub("\n", " ", tooltipHandicape)
 
 tooltipIndigent = "Personnes physiques reconnues indigentes par la commission 
-communale des imp\\ôts directs apr\\ès avis conforme du repr\\ésentant du service des imp\\ôts"
+communale des impôts directs après avis conforme du représentant du service des impôts"
 tooltipIndigent = gsub("\n", " ", tooltipIndigent)
 
-tooltipPac = "Les enfants du contribuable ou ceux qu\\'il a recueillis, 
-c\\'est-\\à-dire qui sont pris en compte dans le foyer fiscal pour le calcul 
-de l\\'imp\\ôt sur le revenu au titre de l\\'année N-1 ;
-les ascendants du contribuable \\âg\\és de plus de 70 ans ou infirmes 
-quel que soit leur \\âge, r\\ésidant avec le contribuable et remplissant 
-la condition de revenus (montant de leur revenu fiscal de r\\éf\\érence (RFR) 
-de l\\’année pr\\éc\\édente n\\’excédant pas la limite pr\\évue à l\\’article 1417-I du CGI)"
+tooltipRfr = "Vous le trouverez en haut à droite du verso de votre avis d'imposition"
+tooltipPac = "Enfants, infirmes quel que soit leur âge, ascendants de plus de 70 ans s'ils résident avec le contribuable.
+Les enfants en garde partagée comptent pour 0,5"
 tooltipPac = gsub("\n", " ", tooltipPac)
 
-tooltipIsf = "Imp\\ôt de solidarit\\é sur la fortune pay\\é au titre de l\\'ann\\ée 2016"
-tooltipAah = "B\\én\\éficiaire de l\\'allocation adulte handicap\\é. 
-<br>Cas \\équivalent \\: vous \\êtes infirme ou invalide et ne pouvez subvenir par votre travail aux n\\écessit\\és de l\\'existence."
+tooltipIsf = "Impôt de solidarité sur la fortune payé au titre de l'année 2016"
+tooltipAah = "Bénéficiaire de l'allocation adulte handicapé. 
+<br>Cas équivalent : vous êtes infirme ou invalide et ne pouvez subvenir par votre travail aux nécessités de l'existence."
 tooltipAah = gsub("\n", " ", tooltipAah)
+tooltipAsi = "Allocation supplémentaire d'invalidité"
+tooltipAspa = "Allocation de solidarité aux personnes âgées"
 
-tooltipMajRs = "Si la commune en a vot\\é une, valeur comprise entre 5\\% et 60\\%."
+tooltipVlb = "Vous la trouverez en haut à droite du verso de votre avis d'imposition"
+tooltipMajRs = "Si la commune en a voté une, valeur comprise entre 5% et 60%."
 
+tooltipGemapi = "Gestion des milieux aquatiques et prévention des inondations"
+tooltipTse = "Taxe spéciale d'équipement"
 
 ################################################### 
 # Valeurs d'abattements pour une collectivité territoriale.
@@ -89,18 +111,28 @@ tauxGestion = list(commune = c(0.01, 0.01, 0.03, 0.08),
                    TSE = c(0.09, 0.09, 0.09, 0),
                    GEMAPI = c(0.03, 0.03, 0.03, 0.03))
 
-tauxResidenceSecondaire = list(commune = 0.015,
+tauxResidenceSecondaire = list(commune = 0.0015,
                                syndicat = 0,
-                               interco = 0.015,
+                               interco = 0.0015,
                                TSE = 0,
                                GEMAPI = 0)
 
 # Fixé arbitrairement en attendant les vraies valeurs
 tauxMajorationResidenceSecondaire = 0.0
 
+
+######## MESSAGES POP UP
+
+  
 ######## FONCTIONS
 
-# Arrondi spécifique 0.5 --> 1
+# Affichage des %
+percent <- function(x, digits = 2, format = "f", ...) {
+  x = paste0(formatC(100 * x, format = format, digits = digits, ...), "%")
+  x = gsub('\\.', ',', x)
+}
+
+# Arrondi spécifique à la taxe 0.5 --> 1
 round2 = function(x, n) {
   posneg = sign(x)
   z = abs(x)*10^n
@@ -127,6 +159,14 @@ euro = function(montant, allegement){
   return(montant)
 }
 
+euro_back = function(montant){
+  montant = gsub('€|\\s+', '', montant)
+  montant = gsub(',', '.', montant)
+  montant = gsub('-', 0, montant)
+  montant = as.numeric(montant)
+  return(montant)
+}
+
 # Seuils au titre de l'article 1417 et 1414 du CGI
 calculer_seuil = function (grille, zone, annee, nombreParts) {
   referentiel = subset(grille, Zone == zone & Annee == annee)
@@ -146,6 +186,23 @@ afficher_seuil = function(tableSeuils, zone, annee, nombreParts){
   phraseSeuil = sprintf("Dans votre département, le seuil d'exonération pour un foyer de %s parts est de %s€.", nombreParts, seuil_exo)
 }
 
+makeButton = function (myId, header, data, rvTabBox) {
+  myValueBox = valueBox(
+    "Title",
+    data,
+    color = ifelse(rvTabBox == myId, "navy", "light-blue"),
+    width = 12,
+    href = "#"
+  )
+  myValueBox$children[[1]]$attribs$class = "action-button"
+  myValueBox$children[[1]]$attribs$id = paste0("button_", myId)
+  myValueBox$children[[1]]$children[[1]]$children[[1]]$children = list(
+    tags$h3(data),
+    tags$p(header)  
+  )
+  return(myValueBox)
+}
+
 # Logement modeste dans les DOM 
 # Certaines communes ont porté le taux de 40% à 50%. Pas d'indication dans le REI.
 # Il est donc possible qu'un logement soit exonéré car sa VL est comprise entre 40 et 50% de la VL communale
@@ -162,9 +219,10 @@ log = function (message) {
 ################################################################################
 # Fonctions pour le calcul de la TH étape par étape
 
-calculer_multiplicateur = function(nbPAC, rfr, seuil, vlBrute, situation, 
-                                   alloc, reiCommune){
+calculer_multiplicateur = function(nbParts, nbPAC, rfr, vlBrute, situation, 
+                                   alloc, reiCommune, zoneGeo){
   
+  seuil = calculer_seuil(grille_1417_2_CGI, zoneGeo, 2017, nbParts)
   vlMoyenne = reiCommune[,as.character(colValeurLoc)]
   general = 1
   PAC12 = min(2, nbPAC)
@@ -262,11 +320,12 @@ calculer_taux_residence_secondaire = function(typeRes){
 
 
 ################################
-detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCommune,
+calculComplet = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCommune,
                             nomColAbattements, typeRes, zoneGeo, isf, nbParts, txMajRsCom){
   
   # Abattements 
-  multiplicateurs = calculer_multiplicateur(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCommune)
+  multiplicateurs = calculer_multiplicateur(nbParts, nbPAC, rfr, vlBrute, 
+                                            situation, alloc, reiCommune, zoneGeo)
   abattements = extraire_abattements(reiCommune, nomColAbattements, typeRes)
   totauxAbattements = colSums(abattements*multiplicateurs)
   basesNettes = pmax(0, vlBrute - totauxAbattements)
@@ -286,7 +345,7 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
   if (typeRes == "vacant"){
     fraisGestion = calculer_prelevement(cotisations, tauxFraisGestion, "casPart123")
   }
-  fraisGestion_affichage = fraisGestion
+  fraisGestion_affichage = euro(fraisGestion, F)
   fraisGestion_affichage[1] = ifelse (typeRes == "vacant", 
                                       paste("Com. + syndic. + interco. =\n", fraisGestion_affichage[1]),
                                       paste("Com. + interco. =\n", fraisGestion_affichage[1]))
@@ -299,7 +358,7 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
   # Prélèvement résidense secondaire
   tauxResSecondaire = calculer_taux_residence_secondaire(typeRes)
   prelevementResSecondaire = calculer_prelevement(basesNettes, tauxResSecondaire, "casPart13")
-  prelevementResSecondaire_affichage = prelevementResSecondaire
+  prelevementResSecondaire_affichage = euro(prelevementResSecondaire,F)
   prelevementResSecondaire_affichage[1] = ifelse (typeRes == "secondaire", 
                                       paste("Com. + interco. =\n", prelevementResSecondaire_affichage[1]),
                                       0)
@@ -308,14 +367,14 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
     "Valeur locative brute" = euro(vlBrute, F), 
     "Abattements" = euro(totauxAbattements, T), 
     "Base nette" = euro(basesNettes, F), 
-    "Taux d'imposition" = paste0(100*tauxCotisation, "%"), 
+    "Taux d'imposition" = percent(tauxCotisation), 
     "Cotisations" = euro(cotisations, T), 
-    "Taux de gestion" = paste0(100*tauxFraisGestion, "%"), 
-    "Frais de gestion" = euro(fraisGestion_affichage, T),
-    "Taux de cotisation pour base élevée" = paste0(100*tauxBaseElevee, "%"), 
+    "Taux de gestion" = percent(tauxFraisGestion), 
+    "Frais de gestion" = fraisGestion_affichage,
+    "Taux de cotisation pour base élevée" = percent(tauxBaseElevee), 
     "Prélèvement pour base élevée" = euro(prelevementBaseElevee, T),
-    "Taux de cotisation pour résidence secondaire" = paste0(100*tauxResSecondaire, "%"), 
-    "Prélèvement sur résidence secondaire" = euro(prelevementResSecondaire_affichage, T)
+    "Taux de cotisation pour résidence secondaire" = percent(tauxResSecondaire), 
+    "Prélèvement sur résidence secondaire" = prelevementResSecondaire_affichage
   )
   
   # Si les cotisations sont à 0%, on n'affiche pas les 3 premières lignes 
@@ -326,47 +385,28 @@ detailler_calcul = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCom
   rownames(detail) = gsub("\\.", " ", rownames(detail))
   colnames(detail) = c("Commune", 'Syndicat', "Intercommunalité", 'TSE', "GEMAPI")
   
-  return(list(detail = detail,
-              vlBrute = vlBrute, 
-              multiplicateurs = multiplicateurs,
-              abattements = abattements,
-              totauxAbattements = totauxAbattements,
-              basesNettes = basesNettes,
-              tauxCotisation = tauxCotisation,
-              cotisations = cotisations, 
-              totalCotisations = sum(cotisations, na.rm = TRUE),
-              tauxFraisGestion = tauxFraisGestion,
-              fraisGestion = fraisGestion,
-              totalFraisGestion = sum(fraisGestion, na.rm = TRUE),
-              fraisGestion_affichage = fraisGestion_affichage,
-              tauxBaseElevee = tauxBaseElevee,
-              prelevementBaseElevee = prelevementBaseElevee,
-              totalPrelevementBaseElevee = sum(prelevementBaseElevee,na.rm = TRUE),
-              tauxResSecondaire = tauxResSecondaire,
-              prelevementResSecondaire = prelevementResSecondaire,
-              totalPrelevementResSecondaire = sum(prelevementResSecondaire,na.rm = TRUE)
-              ))
-}
-
-calculer_plafonnement = function(rfr, zoneGeo, isf, nbParts, typeRes, 
-                                 totalCotisations, totalFraisGestion, totalPrelevementBaseElevee,
-                                 totalPrelevementResSecondaire){
-
+  ##############################################################################
+  # Calcul du plafonnement
   # Eligible au plafonnement
+  
   seuilEligibilite = calculer_seuil(grille_1417_2_CGI, zoneGeo, 2017, nbParts)
   eligibilite = ! any(isf | typeRes == "secondaire" | rfr > seuilEligibilite)
   
   # Montant de l'abattement de rfr
-  abattement = ifelse(eligibilite, calculer_seuil(grille_1414_A1_CGI, zoneGeo, 2017, nbParts), NA)
+  abattementPlafond = ifelse(eligibilite, calculer_seuil(grille_1414_A1_CGI, zoneGeo, 2017, nbParts), NA)
   
   # RFR abattu
-  rfrAbattu = ifelse(eligibilite, max(rfr - abattement,0), rfr)
-  print(rfrAbattu)
-  
+  rfrAbattu = ifelse(eligibilite, max(rfr - abattementPlafond,0), rfr)
+
   # Montant de la TH max dans le cas du plafonnement
   plafond = ifelse(eligibilite, round2(0.0344*rfrAbattu, 0), NA)
   
   # Montant du dégrèvement calculé != appliqué
+  totalCotisations = sum(cotisations, na.rm = TRUE)
+  totalFraisGestion = sum(fraisGestion, na.rm = TRUE)
+  totalPrelevementBaseElevee = sum(prelevementBaseElevee,na.rm = TRUE)
+  totalPrelevementResSecondaire = sum(prelevementResSecondaire,na.rm = TRUE)
+  
   montantThPourPlafond = totalCotisations + totalFraisGestion
   degrevementCalcule = ifelse(eligibilite, montantThPourPlafond - plafond, 0)
   degrevementApplique = ifelse (degrevementCalcule < 8, 0, degrevementCalcule)
@@ -383,24 +423,51 @@ calculer_plafonnement = function(rfr, zoneGeo, isf, nbParts, typeRes,
   montantThFinal = ifelse(degrevementCalcule>0, 
                           totalCotisations + totalFraisGestion - degrevementApplique,
                           montantThAvPlafonnement)
-  
-  return(list(seuilEligibilite = seuilEligibilite,
+  # Montant total du
+  montantDu = ifelse(montantThFinal>12, montantThFinal, 0)
+  return(list(detail = detail,
+              vlBrute = euro(vlBrute, F), 
+              multiplicateurs = multiplicateurs,
+              abattements = abattements,
+              totauxAbattements = euro(totauxAbattements, F),
+              basesNettes = euro(basesNettes, F),
+              tauxCotisation = tauxCotisation,
+              cotisations = euro(cotisations, F), 
+              totalCotisations = euro(totalCotisations, F),
+              tauxFraisGestion = tauxFraisGestion,
+              fraisGestion = euro(fraisGestion, F),
+              fraisGestion_affichage = fraisGestion_affichage,
+              totalFraisGestion = euro(totalFraisGestion, F),
+              tauxBaseElevee = tauxBaseElevee,
+              prelevementBaseElevee = euro(prelevementBaseElevee,F),
+              totalPrelevementBaseElevee = euro(totalPrelevementBaseElevee, F),
+              tauxResSecondaire = tauxResSecondaire,
+              prelevementResSecondaire = euro(prelevementResSecondaire, F),
+              prelevementResSecondaire_affichage = prelevementResSecondaire_affichage,
+              totalPrelevementResSecondaire = euro(totalPrelevementResSecondaire, F),
+              
+              # Partie sur le plafond
+              seuilEligibilite = euro(seuilEligibilite, F),
               eligibilite = eligibilite,
-              abattement = abattement, 
-              rfrAbattu = rfrAbattu,
-              plafond = plafond, 
-              montantThPourPlafond = montantThPourPlafond,
+              abattementPlafond = abattementPlafond, 
+              rfrAbattu = euro(rfrAbattu, F),
+              plafond = euro(plafond, F), 
+              montantThPourPlafond = euro(montantThPourPlafond, F),
               degrevementCalcule = degrevementCalcule,
               degrevementApplique = degrevementApplique,
-              degrevementBaseElevee = degrevementBaseElevee,
-              montantThAvPlafonnement = montantThAvPlafonnement,
-              montantThFinal = montantThFinal
-              ))
+              degrevementBaseElevee = euro(degrevementBaseElevee, F),
+              montantThAvPlafonnement = euro(montantThAvPlafonnement, F),
+              montantThFinal = euro(montantThFinal, F),
+              montantDu = euro(montantDu, F)
+              )
+         )
 }
 
 
 
 calculer_reforme2018 = function(rfr, nbParts, montantTotalTH){
+  montantTotalTH = euro_back(montantTotalTH) # Retour à un chiffre
+  
   seuilBas = calculer_seuil(grille_1417_2bisa_CGI, "France", "2018", nbParts)
   seuilHaut = calculer_seuil(grille_1417_2bisb_CGI, "France", "2018", nbParts)
   
@@ -413,13 +480,32 @@ calculer_reforme2018 = function(rfr, nbParts, montantTotalTH){
   }
   degrevement = round2(taux*montantTotalTH,0)
   montantTaxe = montantTotalTH - degrevement
-  return(list(taux = taux,
-              degrevement = degrevement,
-              montantTaxe = montantTaxe))
+  
+  ## Graphique
+  df <- data.frame(x = c(min(seuilBas, rfr)*0.8, max(seuilHaut,rfr)*1.1), y = c(0.3, 0))
+
+  for (x in c(seuilBas:seuilHaut)){
+    df = rbind.data.frame(df, c(x, round(0.3*(1-(x-seuilBas)/(seuilHaut-seuilBas)), 2)))
+  }
+  
+  df = df[order(df$x),]
+  df$dégrèvement = paste0(euro(df$x, F),'<br>', gsub('\\.', ',', percent(df$y)))
+  
+  g = ggplot(df,aes(x = x,y = y, label = dégrèvement)) + geom_line() + 
+    scale_x_continuous(labels = function(x) euro(x,F)) +
+    scale_y_continuous(labels=function(x) paste0(round(x*100,0), "%"), limits = c(0, 0.35)) +
+    xlab("") + ylab(" ") 
+  g = ggplotly(g, tooltip = c("label"))
+  
+  return(list(taux = percent(taux),
+              degrevement = euro(degrevement, F),
+              montantTaxe = euro(montantTaxe, F),
+              graph = g))
 }
 
 cascade_abattements = function(vlBrute, abattements, multiplicateur){
   nom_abattements = c("GAB", "PAC1-2", "PAC3+", "Special", "Handicape")
+  vlBrute = euro_back(vlBrute)
   
   valeur = abattements*multiplicateur
   calcul = data.frame(
@@ -445,17 +531,19 @@ cascade_abattements = function(vlBrute, abattements, multiplicateur){
   calcul$type = factor(calcul$type, levels = c("abattement","net"))
   
   calcul$tooltip = ifelse(calcul$type == "abattement",
-                          paste(calcul$multiplicateur, "x",calcul$abattements, "=", calcul$valeur, "€"),
-                          paste("Valeur locative transitoire :", calcul$end, "€"))
-  calcul$tooltip = ifelse(calcul$etape == "Valeur locative brute", paste("Valeur locative brute :", calcul$end, "€"), calcul$tooltip)
-  calcul$tooltip = ifelse(calcul$etape == "Base nette", paste("Base nette :", calcul$end, "€"), calcul$tooltip)
+                          paste(calcul$multiplicateur, "x",calcul$abattements, "=", euro(calcul$valeur,F)),
+                          paste("Valeur locative transitoire :", euro(calcul$end, F)))
+  calcul$tooltip = ifelse(calcul$etape == "Valeur locative brute", paste("Valeur locative brute :", euro(calcul$end, F)), calcul$tooltip)
+  calcul$tooltip = ifelse(calcul$etape == "Base nette", paste("Base nette :", euro(calcul$end, F)), calcul$tooltip)
   
   # Graphique
   g = ggplot(calcul, aes(etape, fill = type)) +
     geom_rect(aes(x = etape, text = tooltip,
                   xmin = id - 0.45, xmax = id + 0.45, ymin = end, ymax = start)) +
     geom_segment(aes(x = id - 0.45, xend = id + 0.45, y = 0, yend = 0, colour=type)) +
-    xlab("") + ylab("Montant") 
+    xlab("") + ylab("Montant") +
+    theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank())
   
   # Cas où la vl est nulle
   if (max(calcul$end) == 0){
@@ -465,10 +553,11 @@ cascade_abattements = function(vlBrute, abattements, multiplicateur){
   # Si abattements, affichage des valeurs
   if (any(valeur>0)){
     g = g + geom_text(data=subset(calcul, type == "abattement" & valeur >0),
-                      aes(x=id,y=(start+end)/2,label=euro(-(start-end), T)))
+                      aes(x=id,y=(start+end)/2, label=euro(-(start-end), T)))
   }
   
   g = ggplotly(g, tooltip = c("text"))
+    
   g = hide_legend(g)
   return(g)
 }
@@ -478,7 +567,8 @@ cascade_abattements = function(vlBrute, abattements, multiplicateur){
 # https://stackoverflow.com/questions/36132204/reactive-radiobuttons-with-tooltipbs-in-shiny
 groupTooltip <- function(id, choice, title, placement = "bottom", trigger = "hover", options = NULL){
   
-  options = shinyBS:::buildTooltipOrPopoverOptionsList(title, placement, trigger, options)
+  options = shinyBS:::buildTooltipOrPopoverOptionsList(gsub("'", "&#39;", title), 
+                                                       placement, trigger, options)
   options = paste0("{'", paste(names(options), options, sep = "': '", collapse = "', '"), "'}")
   bsTag <- shiny::tags$script(shiny::HTML(paste0("
                                                  $(document).ready(function() {
@@ -495,3 +585,56 @@ groupTooltip <- function(id, choice, title, placement = "bottom", trigger = "hov
                                                  ")))
   htmltools::attachDependencies(bsTag, shinyBS:::shinyBSDep)
 }
+
+
+dessiner_plafonnement = function(rfr, abattement){
+  rfrAbattu = rfr - abattement
+  plafond1 = rfrAbattu*0.0344
+  d = data.frame(x1=c(1.2, 1.2, 3.2, 5.2, 5.2), 
+                 x2=c(2.8, 2.8, 4.8, 6.8, 6.8), 
+                 y1=c(0,rfrAbattu,0, 0, plafond1), 
+                 y2=c(rfrAbattu,rfr, plafond1, plafond1, 0.08*rfrAbattu), 
+                 t=c('a','a', 'a', 'a', 'a'), r=c('RFR abattu', "Abattement", "", "", ""))
+  
+  g = ggplot() + 
+    scale_x_continuous(name="", limits = c(0.5,7)) +
+    scale_y_continuous(name="", limits = c(0,rfr*1.1)) +
+    geom_rect(data=d, mapping=aes(xmin=x1, xmax=x2, ymin=y1, ymax=y2, fill=t),
+              fill = c(1,2,3, 3,4), color="black", alpha=0.5) +
+    geom_text(data=d, aes(x=x1+(x2-x1)/2, y=y1+(y2-y1)/2, label=r), size=4) +
+    annotate("segment", x=0.8, xend=0.8, y=0, yend=rfr, alpha=1, lwd = 1) +
+    annotate("segment", x=0.8, xend=0.9, y=rfr, yend=rfr, alpha=1, lwd = 1)+
+    annotate("segment", x=0.8, xend=0.9, y=0, yend=0, alpha=1, lwd = 1) +
+    annotate("text", x=0.5, y=rfr/2, label = "RFR") +
+    annotate("text", x = c(2, 4, 6), y = rep(rfr*1.1,3), label = c(1,2,3)) +
+    annotate("text", x=4, y=rfrAbattu, label = "RFR abattu x 3,44%") +
+    annotate("text", x=6, y=rfrAbattu, 
+             label = "RFR abattu x 3,44% \n+ éventuel\nréhaussement") +
+    annotate("segment", x=3, xend=4, y=rfrAbattu/2, yend=2*plafond1,
+             alpha=1, lwd = 1, arrow=arrow(length=unit(0.03,"npc"))) +
+    annotate("segment", x=4.2, xend=6, y=2*plafond1,  yend= 2*2*plafond1,
+             alpha=1, lwd = 1, arrow=arrow(length=unit(0.03,"npc"))) +
+    theme(axis.title=element_blank(),
+          axis.text=element_blank(),
+          axis.ticks=element_blank(),
+          panel.border = element_blank(), 
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(), 
+          axis.ticks.length = unit(0, "mm")) 
+  # g = ggplotly(g)
+  return(g)
+}
+
+# observeEvent(input[["tauxMajRsCommune"]],
+#              {
+#                updateSelectInput(session = session,
+#                                  inputId = "tauxMajRsCommune2",
+#                                  selected = input[["tauxMajRsCommune"]])
+#              })
+#
+# observeEvent(input[["tauxMajRsCommune2"]],
+#              {
+#                updateSelectInput(session = session,
+#                                  inputId = "tauxMajRsCommune",
+#                                  selected = input[["tauxMajRsCommune2"]])
+#              })
