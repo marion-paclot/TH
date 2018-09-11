@@ -237,7 +237,7 @@ server <- function(input, output, session) {
             appliqués à la valeur locative brute de votre bien.</h4>
           <span><br>La valeur locative nette de votre bien est sa valeur post abattements et elle ne peut être négative.
             Elle sert d'assiette au calcul des cotisations.</span>
-          <span><br>Il existe 5 types d'abattements, dont le montant est soit un montant forfaitaire (%F) 
+          <span><br>Il existe 5 types d'abattements, dont le montant est soit un montant forfaitaire (F%) 
               soit un pourcentage de la valeur locative moyenne de la collectivité :</span>
           <ul>
             <li>Général à la base : applicable à toutes les habitations principales, 

@@ -32,7 +32,7 @@ ui <- dashboardPage(
     
     tags$head(
       # Lien vers le fichier CSS de l'application
-      tags$link(rel = "stylesheet", type = "text/css", href = "/app.css")),
+      tags$link(rel = "stylesheet", type = "text/css", href = "app.css")),
   
     tabItems(
     
