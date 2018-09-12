@@ -13,6 +13,7 @@ options(shiny.usecairo=T, shiny.reactlog = T, stringsAsFactors = FALSE)
 source('components/modal_pourquoi.R', encoding='UTF-8')
 source('components/modal_rfr.R', encoding='UTF-8')
 source('components/text_exoneration.R', encoding='UTF-8')
+source('components/text_abattements.R', encoding='UTF-8')
 
 
 
@@ -361,7 +362,7 @@ calculComplet = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCommun
   prelevementResSecondaire_affichage = euro(prelevementResSecondaire,F)
   prelevementResSecondaire_affichage[1] = ifelse (typeRes == "secondaire", 
                                       paste("Com. + interco. =\n", prelevementResSecondaire_affichage[1]),
-                                      0)
+                                      "0 €")
   # Tout en un tableau
   detail = data.frame(
     "Valeur locative brute" = euro(vlBrute, F), 
@@ -471,31 +472,25 @@ calculer_reforme2018 = function(rfr, nbParts, montantTotalTH){
   seuilBas = calculer_seuil(grille_1417_2bisa_CGI, "France", "2018", nbParts)
   seuilHaut = calculer_seuil(grille_1417_2bisb_CGI, "France", "2018", nbParts)
   
-  taux = 0
-  if (rfr <= seuilBas){
-    taux = 0.30
+  tauxReforme <- function(x){
+    y = ifelse(x <= seuilBas, 0.3, 
+               ifelse(x<= seuilHaut, 0.3*(seuilHaut-x)/(seuilHaut - seuilBas), 0))
+    y = round(y,2)
+    return(y)
   }
-  if (rfr > seuilBas & rfr <= seuilHaut){
-    taux = 0.3*(seuilHaut-rfr)/(seuilHaut - seuilBas)
-  }
+  
+  taux = tauxReforme(rfr)
   degrevement = round2(taux*montantTotalTH,0)
   montantTaxe = montantTotalTH - degrevement
   
   ## Graphique
-  df <- data.frame(x = c(min(seuilBas, rfr)*0.8, max(seuilHaut,rfr)*1.1), y = c(0.3, 0))
-
-  for (x in c(seuilBas:seuilHaut)){
-    df = rbind.data.frame(df, c(x, round(0.3*(1-(x-seuilBas)/(seuilHaut-seuilBas)), 2)))
-  }
-  
-  df = df[order(df$x),]
-  df$dégrèvement = paste0(euro(df$x, F),'<br>', gsub('\\.', ',', percent(df$y)))
-  
-  g = ggplot(df,aes(x = x,y = y, label = dégrèvement)) + geom_line() + 
+  points = c(round(min(seuilBas, rfr)*0.8), seuilBas:seuilHaut, round(max(seuilHaut,rfr)*1.1))
+  g <- ggplot(data = data.frame(x = points, y = tauxReforme(points)), mapping = aes(x, y)) +
+    geom_line() +
     scale_x_continuous(labels = function(x) euro(x,F)) +
-    scale_y_continuous(labels=function(x) paste0(round(x*100,0), "%"), limits = c(0, 0.35)) +
-    xlab("") + ylab(" ") 
-  g = ggplotly(g, tooltip = c("label"))
+    scale_y_continuous(labels=function(x) paste0(round(x*100,0), "%"))
+  g = ggplotly(g,tooltip = NULL)
+  
   
   return(list(taux = percent(taux),
               degrevement = euro(degrevement, F),

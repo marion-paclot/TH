@@ -32,7 +32,7 @@ ui <- dashboardPage(
     
     tags$head(
       # Lien vers le fichier CSS de l'application
-      tags$link(rel = "stylesheet", type = "text/css", href = "app.css")),
+      tags$link(rel = "stylesheet", type = "text/css", href = "style.css")),
   
     tabItems(
     
@@ -198,25 +198,39 @@ ui <- dashboardPage(
         tabName = "resultat",
         mainPanel(
           width = 12,
+          
           fluidRow(
-            uiOutput("totalBox"),
             column(width = 6,
-              tags$div(class="alert alert-info",
-                       uiOutput("explicationAssujettissement")),
+                   uiOutput("totalBox")
+                   ),
+            column(width = 6,
+              tags$div(class="alert alert-info", uiOutput("explicationAssujettissement")),
               conditionalPanel('output.montantRameneA0',
                                tags$div(class="alert alert-info", uiOutput('montantAnnule'))
                        )
-            )
+              )
             ),
           fluidRow(
             conditionalPanel(
-              condition = "output.assujetti && input.vlBrute == 0", 
-              tags$div(class="alert alert-info",
-                       uiOutput("vlBruteNulle_resultat")
-                       )
-              )
+              condition = "output.beneficiairePlafond && input.vlBrute > 0",
+              tags$div(class="alert alert-info", uiOutput('warningPlafond'))
             )
-        )
+          ),  
+            
+          fluidRow(
+            conditionalPanel(
+                   condition = "output.assujetti && input.vlBrute == 0",
+                   uiOutput("vlBruteNulle_resultat")
+                   )
+            ),
+          fluidRow(
+            conditionalPanel(
+                   condition = "input.vlBrute > 0",
+                   tags$div(style = "text-align: center", actionButton("detail", "Accéder au détail du calcul"))
+                 )
+          )
+        ),
+        div(style = "clear: both")
       ),
       
       # Abattements ============================================================
@@ -227,7 +241,9 @@ ui <- dashboardPage(
           # Explication des abattements
           conditionalPanel(
             condition = "output.assujetti && input.residence == 'principale'", 
-            tags$div(class="alert alert-info", uiOutput("vlNette"))),
+            tags$div(class="alert alert-info", uiOutput("vlNette")),
+            tags$div(class="alert alert-info", uiOutput("exoPartielle"))
+            ),
           # Cas des habitations hors résidences principales
           conditionalPanel(
             condition = "input.residence != 'principale'", 
@@ -265,12 +281,15 @@ ui <- dashboardPage(
           width = 12,
           # Boites de décomposition
           fluidRow(
-            tags$div(class="col-md-5ths col-xs-6", uiOutput("cotisationsBox")),
-            tags$div(class="col-md-5ths col-xs-6", uiOutput("fraisBox")),
-            tags$div(class="col-md-5ths col-xs-6", uiOutput("baseEleveeBox")),
-            tags$div(class="col-md-5ths col-xs-6", uiOutput("residenceSecondaireBox")),
-            tags$div(class="col-md-5ths col-xs-6", uiOutput("plafonnementBox"))
-                   ),
+            div(class = "col-container",
+                     div(class="col-md-5ths col-xs-6", uiOutput("cotisationsBox")),
+                     div(class="col-md-5ths col-xs-6", uiOutput("fraisBox")),
+                     div(class="col-md-5ths col-xs-6", uiOutput("baseEleveeBox")),
+                     div(class="col-md-5ths col-xs-6", uiOutput("residenceSecondaireBox")),
+                     div(class="col-md-5ths col-xs-6", uiOutput("plafonnementBox"))
+                )
+            ),
+          
           fluidRow( 
                    # Titre
                    uiOutput("titreCalcul"),

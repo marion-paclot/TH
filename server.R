@@ -14,6 +14,10 @@ server <- function(input, output, session) {
     updateTabItems(session, "tabs", "resultat")
   })
   
+  observeEvent(input$detail, {
+    updateTabItems(session, "tabs", "detail")
+  })
+  
   # Introduction
   output$introduction = renderUI({
     phrase = "<h1>COMPRENEZ VOTRE TAXE D'HABITATION !</h1>
@@ -176,15 +180,15 @@ server <- function(input, output, session) {
   })
   outputOptions(output, "baseElevee", suspendWhenHidden = FALSE)
   
+  output$eligiblePlafond <- reactive({
+    calculTH()$eligibilite
+  })
+  
   output$beneficiairePlafond <- reactive({
-    calculTH()$degrevementCalcule != '0 €'
+    calculTH()$degrevementCalcule > 0
   })
   outputOptions(output, "beneficiairePlafond", suspendWhenHidden = FALSE)
   
-  
-  output$eligiblePlafond <- reactive({
-    calculTH()$eligibilite
-    })
   outputOptions(output, "eligiblePlafond", suspendWhenHidden = FALSE)
   
   output$montantRameneA0 <- reactive({
@@ -201,24 +205,25 @@ server <- function(input, output, session) {
       valeur,
       "Montant final de la taxe",
       color = "navy",
-      width = 6,
+      width = 12,
       href = "#"
     )
   })
 
+  # exoneration <- reactive({showTextExoneration(entree()$nbParts, seuils()$art1417_1, exonerations(), input$residence, entree()$tlv) }) 
   output$explicationAssujettissement <- renderUI ({
-    enteteExplication = ifelse(exonerations()$assujetti, 
-                   "Vous êtes assujetti à la taxe d'habitation.",
-                   "Vous êtes exonéré de taxe d'habitation.")
-    explication = exoneration()
-    finExplication = ifelse(exonerations()$assujetti, 
-                               "",
-                               "<br>A titre pédagogique, l'application détaille le calcul de la taxe
-                            d'habitation si vous n'en aviez pas été exonéré.")
-    HTML(sprintf("<h4>%s</h4><span><br>%s%s</span>", enteteExplication, explication, finExplication))
+    # exoneration()
+    showTextExoneration(entree()$nbParts, seuils()$art1417_1, exonerations(), input$residence, entree()$tlv)
   })
   
-  exoneration <- reactive({showTextExoneration(entree()$nbParts, seuils()$art1417_1, exonerations(), input$residence, entree()$tlv) }) 
+  # Boite warning dans le cas où le plafonnement est touché
+  output$warningPlafond <- renderUI ({
+    phrase = "<p>Vous bénéficiez du plafonnement. Certaines données nécessaires 
+    à son calcul n'étant pas disponibles en open data, le calcul n'a pas été 
+    mené à son terme. Cela peut expliquer un écart entre le montant calculé ici 
+    et le montant de votre impôt.</p>"
+    return(HTML(phrase))
+  })
   
   output$montantAnnule <- renderUI({
     phrase = ''
@@ -233,27 +238,11 @@ server <- function(input, output, session) {
   #### Onglet Abattements
   
   output$vlNette <- renderUI({
-    HTML("<h4>En fonction de votre situation personnelle, vous pouvez bénéficier d'abattements
-            appliqués à la valeur locative brute de votre bien.</h4>
-          <span><br>La valeur locative nette de votre bien est sa valeur post abattements et elle ne peut être négative.
-            Elle sert d'assiette au calcul des cotisations.</span>
-          <span><br>Il existe 5 types d'abattements, dont le montant est soit un montant forfaitaire (F%) 
-              soit un pourcentage de la valeur locative moyenne de la collectivité :</span>
-          <ul>
-            <li>Général à la base : applicable à toutes les habitations principales, 
-                sans condition de ressource.</li>
-            <li>Pour personne à charge de rang 1 et 2 : par personne à charge pour chacune des 
-                deux premières personnes à charge.</li>
-            <li>Pour personne à charge à partir de 3 : par personne à charge à partir de la troisième.</li>
-            <li>Spécial à la base en faveur des personnes de condition modeste : 
-                critère de revenu (le rfr ne doit pas dépasser un seuil dépendant 
-                du département et du nombre de parts fiscales) 
-                et de valeur locative brute, qui ne doit pas dépasser 130% (+10% par personne à charge) de la valeur locative moyenne.</li>
-            <li>Spécial à la base en faveur des personnes handicapées ou invalides : 
-                applicable dès lors qu'une personne handicapée ou invalide réside dans l'habitation à titre principal.</li>
-         </ul>"
-         )
+    HTML(text_abattements)
     })
+  output$exoPartielle <- renderUI({
+    HTML(pExoPartielle)
+  })
   
   vlBruteNonRenseignee = reactive({
     valueBox(
@@ -306,22 +295,39 @@ server <- function(input, output, session) {
     
     
     # Adaptation des explications :
+    ### Général à la base
     explications[1] = ifelse(abattements[1] > 0,
                              "La collectivité a voté un abattement qui s'applique à l'ensemble des foyers.",
                              "La collectivité n'a pas voté d'abattement général à la base.")
+    ### Personne à charge de rang 1 ou 2
     explications[2] = ifelse(abattements[2] > 0,
                              "Abattement pour chacune des deux premières personnes à charge.",
                              "La collectivité n'a pas voté d'abattement pour les deux premières personnes à charge.")
+    if (abattements[2] > 0 & entree()$nbPAC == 0){
+      explications[2] = paste(explications[2], "Vous n'avez pas de personne à charge.")
+    }
+    if (abattements[2] > 0 & entree()$nbPAC >0){
+      explications[2] = paste(explications[2], "Vous avez des personnes à charge.")
+    }
+    ### Personne à charge de rang 3 et plus
     explications[3] = ifelse(abattements[3] > 0,
                              "Abattement pour chaque personne à charge, au delà de 2.",
                              "La collectivité n'a pas voté d'abattement pour les 
                              personnes à charge au delà de 2.")
+    if (abattements[3] > 0 & entree()$nbPAC < 2.5){
+      explications[3] = paste(explications[3], "Vous n'avez pas de personne à charge de rang 3 ou plus.")
+    }
+    if (abattements[3] > 0 & entree()$nbPAC >0){
+      explications[3] = paste(explications[3], "Vous avez des personnes à charge de rang 3.")
+    }
+    
+    ### Abattement special à la base
     explications[4] = ifelse(abattements[4] > 0,
                              sprintf("Abattement sous conditions : votre rfr ne doit pas dépasser %s et
                                      la valeur locative de votre bien ne doit pas excéder %s.", 
                                      euro(seuils()$art1417_2, F), euro(vlMax, F)),
                              "La collectivité n'a pas voté d'abattement en faveur des personnes de condition modeste.")
-    
+    ### Abattement handicapé
     explications[5] = ifelse(abattements[5] > 0,
                              "Abattement applicable aux foyers dans lesquels une personne est en situation de handicap, bénéficiaire de l'ASI ou de l'AAH.",
                              "La collectivité n'a pas voté d'abattement en faveur des personnes handicapées ou invalides.")
@@ -452,15 +458,15 @@ server <- function(input, output, session) {
                        pour les foyers ayant acquitté l'ISF.</p>", euro(seuils()$art1417_2bisb, F))
       if (! calculTH()$eligibilite){
         if (entree()$rfr > seuils()$art1417_2) {
-          phrase2 = sprintf("<p>Votre revenu fiscal de référence étant de %s, vous ne bénéficiez
-                           pas du plafonnement de votre taxe d'habitation.</p>",euro(entree()$rfr, F))
+          phrase2 = sprintf("<p>Votre revenu fiscal de référence étant de %s, vous ne pouvez pas bénéficier
+                           du plafonnement de votre taxe d'habitation.</p>",euro(entree()$rfr, F))
         }
         if (input$isf) {
           phrase2 = sprintf("<p>Vous ne bénéficiez pas du plafonnement car vous avez payé
                             l'ISF l'an passé.</p>",euro(entree()$rfr, F))
         }
         if (! input$residence %in% c('principale', 'dépendance princ')) {
-          phrase2 = sprintf("<p>Le plafonnement n'est valable que pour les résidences
+          phrase2 = sprintf("<p>Le plafonnement n'est applicable que pour les résidences
                             principales.</p>",euro(entree()$rfr, F))
         }
         phrase = paste0(phrase, phrase2)
@@ -498,7 +504,8 @@ server <- function(input, output, session) {
   ### Base Elevée
   output$baseEleveeBox <- renderUI ({
     valeur = calculTH()$totalPrelevementBaseElevee
-    if (calculTH()$degrevementCalcule != '0 €'){
+    print(calculTH()$degrevementCalcule)
+    if (calculTH()$degrevementCalcule >0){
       valeur = "0 €*"
     }
     makeButton("baseElevee", "Prélèvement base élevée ", valeur, RV[["TAB_BOX"]])
@@ -576,11 +583,12 @@ server <- function(input, output, session) {
     degrevementBaseElevee = calculTH()$degrevementBaseElevee
     phrase = ''
     if (degrevementCalcule>0){
-      phrase = sprintf("<p>L'application du plafonnement vous permet de bénéficier
-                       d'un dégrèvement de cotisation de %s.</p>", euro(degrevementCalcule,F))
+      phrase = sprintf("L'application du plafonnement vous permet de bénéficier
+                       d'un dégrèvement de cotisation de %s.", euro(degrevementCalcule,F))
       if (degrevementCalcule <8){
-        phrase = paste(phrase, "<p>Ce dégrèvement étant de moins de 8 €, il n'est pas appliqué.</p>")
+        phrase = paste(phrase, "<br>Ce dégrèvement étant de moins de 8 €, il n'est pas appliqué.")
       }
+      phrase = sprintf("<p>%s</p>", phrase)
     }
     return(HTML(phrase))
 })

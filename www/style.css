@@ -1,7 +1,6 @@
 .small-box {
-  min-height: 110px;
+  min-height: 130px;
 }
-
 
 .alert > .shiny-text-output {
   white-space: pre-wrap;
@@ -44,6 +43,7 @@ h1 {
   margin: auto;
 }
 
+
 .col-xs-5ths,
 .col-sm-5ths,
 .col-md-5ths,
@@ -52,9 +52,7 @@ h1 {
     min-height: 1px;
     padding-right: 0px;
     padding-left: 0px;
-    display: table-cell;
 }
-
 
 
 .col-xs-5ths {
@@ -81,4 +79,17 @@ h1 {
         width: 20%;
         float: left;
     }
+}
+
+.shiny-html-output shiny-bound-output{
+  display: table-cell;
+}
+
+.col-container {
+    display: table; /* Make the container element behave like a table */
+    width: 100%; /* Set full-width to expand the whole page */
+}
+
+.col {
+    display: table-cell; /* Make elements inside the container behave like table cells */
 }
