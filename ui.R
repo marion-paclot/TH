@@ -80,7 +80,7 @@ ui <- dashboardPage(
                     numericInput(
                       "rfr",
                       label = "Revenu fiscal de référence",
-                      value = 12000,
+                      value = 0,
                       min = 0,
                       step = 1
                     ),
@@ -155,7 +155,7 @@ ui <- dashboardPage(
                 numericInput(
                   "vlBrute",
                   "Valeur locative brute",
-                  value = 1200,
+                  value = 0,
                   min = 1,
                   step = 1
                 ),
