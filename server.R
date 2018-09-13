@@ -66,12 +66,13 @@ server <- function(input, output, session) {
     # Code INSEE de la commune
     codeCom = subset(rei, LIBDEP == nomDep & LIBCOM == nomCom)$IDCOM
     reiCom = subset(rei, IDCOM == codeCom)
+    # print(reiCom)
     
     # Taxe d'habitation sur les logements vacants. Si TRUE alors la th n'est pas due
     # Par simplicité on ramène la vlBrute à 0
     tlv = reiCom$COMTLV == 1
     if (input$residence == 'vacant' & tlv){
-      vlb = 0
+      vlBrute = 0
     }
       
     ## Zone géographique

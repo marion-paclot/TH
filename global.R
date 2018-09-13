@@ -418,7 +418,7 @@ calculComplet = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCommun
   
   # Dans le cas où une cotisation pour base elevée était payée, 
   # le plafonnement ouvre droit à son dégrèvement.
-  degrevementBaseElevee = eligibilite & degrevementCalcule>0
+  degrevementBaseElevee = eligibilite & degrevementCalcule>0 & totalPrelevementBaseElevee>0
   
   # Montant total avant plafonnement
   montantThAvPlafonnement = totalCotisations + totalFraisGestion +
