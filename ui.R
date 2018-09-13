@@ -303,13 +303,13 @@ ui <- dashboardPage(
                    conditionalPanel(condition = "output.boxInactivePlafonnement",
                                     dataTableOutput("calculDetaille")
                                     ),
-                   conditionalPanel(condition = "output.boxActivePlafonnement & output.beneficiairePlafond & input.rfr>0",
+                   conditionalPanel(condition = "output.boxActivePlafonnement & output.eligiblePlafond",
                                     column(width = 6, plotOutput("graphPlafond")),
                                     column(width = 6, tags$div(class="alert alert-info", uiOutput("explicationPlafonnement")))
                                     )
                    ),
           fluidRow(
-            conditionalPanel(condition = "output.boxActivePlafonnement & output.beneficiairePlafond",
+            conditionalPanel(condition = "output.boxActivePlafonnement & output.eligiblePlafond",
                              tags$div(class="alert alert-info", uiOutput("calculPlafonnement")),
                              tags$div(class="alert alert-info", uiOutput("resultatPlafonnement"))
                              )

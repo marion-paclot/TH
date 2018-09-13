@@ -586,7 +586,8 @@ server <- function(input, output, session) {
   output$resultatPlafonnement = renderUI({
     degrevementCalcule = calculTH()$degrevementCalcule
     degrevementBaseElevee = calculTH()$degrevementBaseElevee
-    phrase = ''
+    phrase = "Le montant de votre taxe étant en dessous du plafond, vous ne 
+    bénéficiez pas de dégrèvement."
     if (degrevementCalcule>0){
       phrase = sprintf("L'application du plafonnement vous permet de bénéficier
                        d'un dégrèvement de cotisation de %s.", euro(degrevementCalcule,F))
