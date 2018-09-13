@@ -34,6 +34,7 @@ server <- function(input, output, session) {
   entree <- reactive({
     
     nomDep = input$nomDepartement
+    print(nomDep)
     nomCom = input$nomCommune
     nbParts = as.numeric(gsub(',', '.', input$nbParts))
     nbPAC = as.numeric(gsub(',', '.', input$nbPAC))
@@ -41,7 +42,7 @@ server <- function(input, output, session) {
     # Protection contre les valeurs vides
     vlBrute = input$vlBrute
     vlBrute[is.na(vlBrute)] = 0
-    
+
     rfr = input$rfr
     rfr[is.na(rfr)] = 0
     
@@ -67,8 +68,12 @@ server <- function(input, output, session) {
     reiCom = subset(rei, IDCOM == codeCom)
     
     # Taxe d'habitation sur les logements vacants. Si TRUE alors la th n'est pas due
+    # Par simplicité on ramène la vlBrute à 0
     tlv = reiCom$COMTLV == 1
-    
+    if (input$residence == 'vacant' & tlv){
+      vlb = 0
+    }
+      
     ## Zone géographique
     zoneGeo = "Métropole"
     zoneGeo = ifelse(nomDep == 'GUYANE', 'Guyane', zoneGeo)
@@ -504,7 +509,6 @@ server <- function(input, output, session) {
   ### Base Elevée
   output$baseEleveeBox <- renderUI ({
     valeur = calculTH()$totalPrelevementBaseElevee
-    print(calculTH()$degrevementCalcule)
     if (calculTH()$degrevementCalcule >0){
       valeur = "0 €*"
     }
@@ -606,7 +610,8 @@ server <- function(input, output, session) {
          atteindre 30% du montant total de leur taxe d'habitation payée en 2017.
          <br>Le montant estimé en 2018 est calculé en considérant seulement l'éventuelle
          baisse liée à la réforme de la taxe d'habitation : si votre situation a changé,
-         ou si un taux ou un abattements a été modifié, la valeur affichée sera fausse.</p>")
+         ou si un taux ou un abattement a été modifié, la valeur affichée sera fausse.</p>
+         <p>Cette réforme ne concerne que les résidences principales.</p>")
   })
   
   output$degrevement2018 <- renderUI({

@@ -24,13 +24,15 @@ rei = subset(rei, ! LIBCOM %in% c("SAINT-BARTHELEMY", "SAINT-MARTIN"))
 url_rei = "https://www.data.gouv.fr/fr/datasets/impots-locaux-fichier-de-recensement-des-elements-dimposition-a-la-fiscalite-directe-locale-rei-3/"
 dep = unique(rei$LIBDEP)
 
-### Allègement du rei
+
+# ## Allègement du rei
+# rei = read.csv2("data/REI_TH_complet.csv", fileEncoding = "UTF-8")
 # rei = rei[, c("LIBCOM", "LIBDEP", "IDCOM", "COMTLV",
 #               "J51A", "J31A", "J41A", "J61A", "J61HA",
-#               "J53A", "J33A", "J43A", "J63A", "J63HA", 
-#               "J21", "J22", "J23", 
-#               "H12", "H22", "H32", "H52", "H52A", "H52cGEMAPI", "H52gGEMAPI")]
-# write.csv2(rei, "data/REI_TH_LIGHT.csv", row.names = F)
+#               "J53A", "J33A", "J43A", "J63A", "J63HA",
+#               "J21", "J22", "J23",
+#               "H12", "H22", "H32", "H52", "H52A", "H52cGEMAPI", "H52gGEMAPI", "COMTLV")]
+# write.csv2(rei, "data/REI_TH.csv", row.names = F)
 
 # Seuil d'éligibilité du CGI
 grille_1417_1_CGI = read.csv2("data/seuils_1417-1-CGI.csv", fileEncoding = "UTF-8")
@@ -84,6 +86,8 @@ tooltipMajRs = "Si la commune en a voté une, valeur comprise entre 5% et 60%."
 tooltipGemapi = "Gestion des milieux aquatiques et prévention des inondations"
 tooltipTse = "Taxe spéciale d'équipement"
 
+# tooltipVacant = "Logement vacant depuis plus de 2 années consécutive au 1er janvier
+# et habitable"
 ################################################### 
 # Valeurs d'abattements pour une collectivité territoriale.
 # Colonnes Syndicat identiques à celles de la commune car EPCI sans fiscalité propre
@@ -391,7 +395,7 @@ calculComplet = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCommun
   # Eligible au plafonnement
   
   seuilEligibilite = calculer_seuil(grille_1417_2_CGI, zoneGeo, 2017, nbParts)
-  eligibilite = ! any(isf | typeRes == "secondaire" | rfr > seuilEligibilite)
+  eligibilite = ! any(isf | typeRes != "principale" | rfr > seuilEligibilite)
   
   # Montant de l'abattement de rfr
   abattementPlafond = ifelse(eligibilite, calculer_seuil(grille_1414_A1_CGI, zoneGeo, 2017, nbParts), NA)
@@ -583,12 +587,12 @@ groupTooltip <- function(id, choice, title, placement = "bottom", trigger = "hov
 
 
 dessiner_plafonnement = function(rfr, abattement){
-  rfrAbattu = rfr - abattement
+  rfrAbattu = max(0,rfr - abattement)
   plafond1 = rfrAbattu*0.0344
   d = data.frame(x1=c(1.2, 1.2, 3.2, 5.2, 5.2), 
                  x2=c(2.8, 2.8, 4.8, 6.8, 6.8), 
                  y1=c(0,rfrAbattu,0, 0, plafond1), 
-                 y2=c(rfrAbattu,rfr, plafond1, plafond1, 0.08*rfrAbattu), 
+                 y2=c(rfrAbattu,rfr, plafond1, plafond1, max(0.08*rfrAbattu, 100)), 
                  t=c('a','a', 'a', 'a', 'a'), r=c('RFR abattu', "Abattement", "", "", ""))
   
   g = ggplot() + 
@@ -602,8 +606,9 @@ dessiner_plafonnement = function(rfr, abattement){
     annotate("segment", x=0.8, xend=0.9, y=0, yend=0, alpha=1, lwd = 1) +
     annotate("text", x=0.5, y=rfr/2, label = "RFR") +
     annotate("text", x = c(2, 4, 6), y = rep(rfr*1.1,3), label = c(1,2,3)) +
-    annotate("text", x=4, y=rfrAbattu, label = "RFR abattu x 3,44%") +
-    annotate("text", x=6, y=rfrAbattu, 
+    annotate("text", x=4, y=2*max(0.08*rfrAbattu, 100), 
+             label = "RFR abattu x 3,44%") +
+    annotate("text", x=6, y=2*max(0.08*rfrAbattu, 100), 
              label = "RFR abattu x 3,44% \n+ éventuel\nréhaussement") +
     annotate("segment", x=3, xend=4, y=rfrAbattu/2, yend=2*plafond1,
              alpha=1, lwd = 1, arrow=arrow(length=unit(0.03,"npc"))) +

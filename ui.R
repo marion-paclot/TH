@@ -169,9 +169,10 @@ ui <- dashboardPage(
                     "Secondaire" = "secondaire",
                     "Dépendance résidence principale" = "dépendance princ",
                     "Logement vacant" = "vacant"
-                  ),
+                    ),
                   inline = FALSE
-                ),
+                  ),
+                # groupTooltip(id = "residence", choice = "vacant", title = tooltipVacant),
                 numericInput(
                   "tauxMajRsCommune",
                   "Majoration résidence secondaire (en %)",
@@ -302,7 +303,7 @@ ui <- dashboardPage(
                    conditionalPanel(condition = "output.boxInactivePlafonnement",
                                     dataTableOutput("calculDetaille")
                                     ),
-                   conditionalPanel(condition = "output.boxActivePlafonnement & output.beneficiairePlafond",
+                   conditionalPanel(condition = "output.boxActivePlafonnement & output.beneficiairePlafond & input.rfr>0",
                                     column(width = 6, plotOutput("graphPlafond")),
                                     column(width = 6, tags$div(class="alert alert-info", uiOutput("explicationPlafonnement")))
                                     )
@@ -327,15 +328,17 @@ ui <- dashboardPage(
           tags$div(
             class = "alert alert-info", 
             uiOutput("explicationReforme2018")),
-          fluidRow(
-            column(width = 4, uiOutput("degrevement2018")),
-            column(width = 4, uiOutput("tauxDegrevement2018")),
-            column(width = 4, uiOutput("montant2018"))
-            ),
-          h3("Taux de dégrèvement accordé en fonction du revenu fiscal de référence"),
-          h5("Cette courbe dépend du nombre de parts fiscales."),
-          plotlyOutput("courbeDegrevement2018")
-        ),
+          conditionalPanel(condition = "input.residence == 'principale'",
+                           fluidRow(
+                            column(width = 4, uiOutput("degrevement2018")),
+                            column(width = 4, uiOutput("tauxDegrevement2018")),
+                            column(width = 4, uiOutput("montant2018"))
+                            ),
+                          h3("Taux de dégrèvement accordé en fonction du revenu fiscal de référence"),
+                          h5("Cette courbe dépend du nombre de parts fiscales."),
+                          plotlyOutput("courbeDegrevement2018")
+                        )
+          ),
         div(style = "clear: both")
       )
     )
