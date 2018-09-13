@@ -25,14 +25,14 @@ url_rei = "https://www.data.gouv.fr/fr/datasets/impots-locaux-fichier-de-recense
 dep = unique(rei$LIBDEP)
 
 
-# ## Allègement du rei
-# rei = read.csv2("data/REI_TH_complet.csv", fileEncoding = "UTF-8")
-# rei = rei[, c("LIBCOM", "LIBDEP", "IDCOM", "COMTLV",
-#               "J51A", "J31A", "J41A", "J61A", "J61HA",
-#               "J53A", "J33A", "J43A", "J63A", "J63HA",
-#               "J21", "J22", "J23",
-#               "H12", "H22", "H32", "H52", "H52A", "H52cGEMAPI", "H52gGEMAPI", "COMTLV")]
-# write.csv2(rei, "data/REI_TH.csv", row.names = F)
+## Allègement du rei
+rei = read.csv2("data/REI_TH_complet.csv", fileEncoding = "UTF-8")
+rei = rei[, c("LIBCOM", "LIBDEP", "IDCOM", "COMTLV",
+              "J51A", "J31A", "J41A", "J61A", "J61HA",
+              "J53A", "J33A", "J43A", "J63A", "J63HA",
+              "J21", "J22", "J23",
+              "H12", "H22", "H32", "H52", "H52A", "H52cGEMAPI", "H52gGEMAPI")]
+write.csv2(rei, "data/REI_TH.csv", row.names = F)
 
 # Seuil d'éligibilité du CGI
 grille_1417_1_CGI = read.csv2("data/seuils_1417-1-CGI.csv", fileEncoding = "UTF-8")
