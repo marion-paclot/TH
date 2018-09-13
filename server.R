@@ -202,6 +202,12 @@ server <- function(input, output, session) {
   })
   outputOptions(output, "montantRameneA0", suspendWhenHidden = FALSE)
   
+  
+  output$degrevementBaseElevee <- reactive({
+    calculTH()$degrevementBaseElevee
+  })
+  outputOptions(output, "degrevementBaseElevee", suspendWhenHidden = FALSE)
+  
   ##############################################################################
   #### Onglet Résultat
   
@@ -510,7 +516,7 @@ server <- function(input, output, session) {
   ### Base Elevée
   output$baseEleveeBox <- renderUI ({
     valeur = calculTH()$totalPrelevementBaseElevee
-    if (calculTH()$degrevementCalcule >0){
+    if (calculTH()$degrevementBaseElevee >0){
       valeur = "0 €*"
     }
     makeButton("baseElevee", "Prélèvement base élevée ", valeur, RV[["TAB_BOX"]])
@@ -585,7 +591,6 @@ server <- function(input, output, session) {
 
   output$resultatPlafonnement = renderUI({
     degrevementCalcule = calculTH()$degrevementCalcule
-    degrevementBaseElevee = calculTH()$degrevementBaseElevee
     phrase = "Le montant de votre taxe étant en dessous du plafond, vous ne 
     bénéficiez pas de dégrèvement."
     if (degrevementCalcule>0){

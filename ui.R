@@ -297,7 +297,7 @@ ui <- dashboardPage(
                    # Tableau et explications affichés selon la boite sélectionnée
                    
                    tags$div(class = "alert alert-info", uiOutput("calculExplication")),
-                   conditionalPanel(condition = "output.beneficiairePlafond & output.boxActiveBaseElevee", 
+                   conditionalPanel(condition = "output.beneficiairePlafond & output.boxActiveBaseElevee & output.degrevementBaseElevee", 
                                     tags$div(class="alert alert-info", uiOutput("exonerationBaseElevee"))
                                     ),
                    conditionalPanel(condition = "output.boxInactivePlafonnement",
