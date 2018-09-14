@@ -33,6 +33,13 @@ server <- function(input, output, session) {
     vec = ifelse(vec%%0.5 != 0, round(vec/0.5)*0.5, vec)
     updateTextInput(session, "nbPAC", value = vec)
   })
+  
+  observe({
+    vec = input$rfr
+    vec[is.na(vec)] = 0
+    vec = round(vec)
+    updateTextInput(session, "rfr", value = vec)
+  })
 
   
   # Introduction
@@ -536,7 +543,7 @@ server <- function(input, output, session) {
   ### Base Elevée
   output$baseEleveeBox <- renderUI ({
     valeur = calculTH()$totalPrelevementBaseElevee
-    if (calculTH()$degrevementBaseElevee >0){
+    if (calculTH()$degrevementBaseElevee){
       valeur = "0 €*"
     }
     makeButton("baseElevee", "Prélèvement base élevée ", valeur, RV[["TAB_BOX"]])

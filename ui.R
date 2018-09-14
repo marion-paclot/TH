@@ -300,6 +300,7 @@ ui <- dashboardPage(
                    conditionalPanel(condition = "output.beneficiairePlafond & output.boxActiveBaseElevee & output.degrevementBaseElevee", 
                                     tags$div(class="alert alert-info", uiOutput("exonerationBaseElevee"))
                                     ),
+                   # Tableau avec le détail
                    conditionalPanel(condition = "output.boxInactivePlafonnement",
                                     dataTableOutput("calculDetaille")
                                     ),
