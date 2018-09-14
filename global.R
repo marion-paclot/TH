@@ -226,7 +226,6 @@ log = function (message) {
 
 calculer_multiplicateur = function(nbParts, nbPAC, rfr, vlBrute, situation, 
                                    alloc, reiCommune, zoneGeo){
-  
   seuil = calculer_seuil(grille_1417_2_CGI, zoneGeo, 2017, nbParts)
   vlMoyenne = reiCommune[,as.character(colValeurLoc)]
   general = 1

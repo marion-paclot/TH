@@ -18,6 +18,23 @@ server <- function(input, output, session) {
     updateTabItems(session, "tabs", "detail")
   })
   
+  # On ne peut pas entrer autre chose que des chiffres dans nbParts ou nbPac
+  # Dans le cas où on met des valeurs non divisibles par 0.25, correction
+  observe({
+    vec = input$nbParts
+    vec[is.na(vec)] = 1
+    vec = ifelse(vec%%0.25 != 0, round(vec/0.25)*0.25, vec)
+    updateTextInput(session, "nbParts", value = vec)
+  })
+  
+  observe({
+    vec = input$nbPAC
+    vec[is.na(vec)] = 0
+    vec = ifelse(vec%%0.5 != 0, round(vec/0.5)*0.5, vec)
+    updateTextInput(session, "nbPAC", value = vec)
+  })
+
+  
   # Introduction
   output$introduction = renderUI({
     phrase = "<h1>COMPRENEZ VOTRE TAXE D'HABITATION !</h1>
@@ -34,7 +51,6 @@ server <- function(input, output, session) {
   entree <- reactive({
     
     nomDep = input$nomDepartement
-    print(nomDep)
     nomCom = input$nomCommune
     nbParts = as.numeric(gsub(',', '.', input$nbParts))
     nbPAC = as.numeric(gsub(',', '.', input$nbPAC))
@@ -46,8 +62,12 @@ server <- function(input, output, session) {
     rfr = input$rfr
     rfr[is.na(rfr)] = 0
     
-    nbPAC[is.na(nbPAC)] = 1
-    nbParts[is.na(nbParts)] = 0
+    
+    nbParts[is.na(nbParts)] = 1
+    nbParts = ifelse(nbParts %% 0.25 != 0, round(nbParts/0.25)*0.25, nbParts)
+    nbPAC[is.na(nbPAC)] = 0
+    nbPAC = ifelse(nbPAC %% 0.5 != 0, round(nbPAC/0.5)*0.5, nbParts)
+    
     tauxMajRsCommune = input$tauxMajRsCommune
     tauxMajRsCommune[is.na(tauxMajRsCommune)] = 0
     
@@ -62,12 +82,12 @@ server <- function(input, output, session) {
     }
     
     cat('Lancement des calculs pour', nomDep, '>', nomCom, '\n')
+    cat('rfr : ', rfr, '\n')
     
     # Code INSEE de la commune
     codeCom = subset(rei, LIBDEP == nomDep & LIBCOM == nomCom)$IDCOM
     reiCom = subset(rei, IDCOM == codeCom)
-    # print(reiCom)
-    
+
     # Taxe d'habitation sur les logements vacants. Si TRUE alors la th n'est pas due
     # Par simplicité on ramène la vlBrute à 0
     tlv = reiCom$COMTLV == 1
