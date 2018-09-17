@@ -36,7 +36,7 @@ server <- function(input, output, session) {
   
   observe({
     vec = input$rfr
-    vec[is.na(vec)] = 0
+    # vec[is.na(vec)] = 0
     vec[vec<0]=0
     vec = round(vec)
     updateTextInput(session, "rfr", value = vec)
