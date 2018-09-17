@@ -73,8 +73,8 @@ server <- function(input, output, session) {
     nbParts[is.na(nbParts)] = 1
     nbParts = ifelse(nbParts %% 0.25 != 0, round(nbParts/0.25)*0.25, nbParts)
     nbPAC[is.na(nbPAC)] = 0
-    nbPAC = ifelse(nbPAC %% 0.5 != 0, round(nbPAC/0.5)*0.5, nbParts)
-    
+    nbPAC = ifelse(nbPAC %% 0.5 != 0, round(nbPAC/0.5)*0.5, nbPAC)
+
     tauxMajRsCommune = input$tauxMajRsCommune
     tauxMajRsCommune[is.na(tauxMajRsCommune)] = 0
     
@@ -88,9 +88,8 @@ server <- function(input, output, session) {
       nomCom = rei$LIBCOM[rei$LIBDEP == nomDep][1]
     }
     
-    cat('Lancement des calculs pour', nomDep, '>', nomCom, '\n')
-    cat('rfr : ', rfr, '\n')
-    
+    # cat('Lancement des calculs pour', nomDep, '>', nomCom, '\n')
+
     # Code INSEE de la commune
     codeCom = subset(rei, LIBDEP == nomDep & LIBCOM == nomCom)$IDCOM
     reiCom = subset(rei, IDCOM == codeCom)
@@ -107,7 +106,7 @@ server <- function(input, output, session) {
     zoneGeo = ifelse(nomDep == 'GUYANE', 'Guyane', zoneGeo)
     zoneGeo = ifelse(nomDep == 'MAYOTTE', 'Mayotte', zoneGeo)
     zoneGeo = ifelse(nomDep %in% c('GUADELOUPE', 'MARTINIQUE', 'LA REUNION'), 'Guadeloupe Martinique Réunion', zoneGeo)
-    
+
     return(list(nbParts = nbParts,
                 nbPAC = nbPAC,
                 zoneGeo = zoneGeo,
