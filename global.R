@@ -27,7 +27,7 @@ dep = unique(rei$LIBDEP)
 
 ## Allègement du rei
 # rei = read.csv2("data/REI_TH_complet.csv", fileEncoding = "UTF-8")
-# rei = rei[, c("LIBCOM", "LIBDEP", "IDCOM", "COMTLV",
+# rei = rei[, c("LIBCOM", "LIBDEP", "IDCOM", "COMTLV", "J11",
 #               "J51A", "J31A", "J41A", "J61A", "J61HA",
 #               "J53A", "J33A", "J43A", "J63A", "J63HA",
 #               "J21", "J22", "J23",
@@ -489,7 +489,7 @@ calculer_reforme2018 = function(rfr, nbParts, montantTotalTH){
   ## Graphique
   points = c(round(min(seuilBas, rfr)*0.8), seuilBas:seuilHaut, round(max(seuilHaut,rfr)*1.1))
   g <- ggplot(data = data.frame(x = points, y = tauxReforme(points)), mapping = aes(x, y)) +
-    geom_line() +
+    geom_line() + xlab('Revenu') + ylab('') +
     scale_x_continuous(labels = function(x) euro(x,F)) +
     scale_y_continuous(labels=function(x) paste0(round(x*100,0), "%"))
   g = ggplotly(g,tooltip = NULL)

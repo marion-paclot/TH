@@ -37,6 +37,7 @@ server <- function(input, output, session) {
   observe({
     vec = input$rfr
     vec[is.na(vec)] = 0
+    vec[vec<0]=0
     vec = round(vec)
     updateTextInput(session, "rfr", value = vec)
   })
@@ -139,17 +140,7 @@ server <- function(input, output, session) {
     updateRadioButtons(session, 'ab_gph', choices = nomsCollectivite, inline = TRUE)
   })
   
-  ## Bascule d'un onglet à l'autre quand clic sur une ligne spécifique du tableau calcul
-  
-  # observeEvent(input$calcul_cell_clicked, {
-  #   cellule = data.frame(input$calcul_cell_clicked)
-  #   if (nrow(cellule) >0){
-  #     if (cellule$value == "Abattements"){
-  #       updateTabsetPanel(session,inputId = 'tabs', selected = 'Abattements')
-  #     }
-  #   }
-  # })
-  
+
   ### Seuils divers d'exonération et d'abattement
   seuils <- reactive({
     return(list(
@@ -180,6 +171,7 @@ server <- function(input, output, session) {
     exoLogementVacant = entree()$tlv & input$residence == 'vacant'
     exoCriteresSociaux = any(exoDOM | exoIndigent| exoAspaAsi | exoAAH | exoVeufSenior) & 
       input$residence %in% c('principale', 'dépendance principale')
+    
     assujetti = ! exoCriteresSociaux & ! exoLogementVacant
     
     return(list(exoDOM = exoDOM, 
@@ -458,7 +450,8 @@ server <- function(input, output, session) {
   # Explication à afficher quand on clique sur les boites
   output$calculExplication = renderUI({
     if (RV[['TAB_BOX']] == 'cotisations') {
-      phrase = "<p>Base nette d'imposition x taux de cotisation voté par la collectivité.</p>"
+      phrase = "<p>Base nette d'imposition x taux de cotisation voté par la collectivité.
+      <br>Pour comprendre comment est déterminée la Base nette, cliquez sur l'onglet Abattements.</p>"
       if (input$residence == 'secondaire'){
         phrase2 = "<p>Dans le cas d'une résidence secondaire, les communes peuvent décider
         d'une majoration du taux de cotisation allant de 5% à 60%. 

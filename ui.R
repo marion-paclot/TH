@@ -241,7 +241,7 @@ ui <- dashboardPage(
           width = 12,
           # Explication des abattements
           conditionalPanel(
-            condition = "output.assujetti && input.residence == 'principale'", 
+            condition = "input.residence == 'principale'", 
             tags$div(class="alert alert-info", uiOutput("vlNette")),
             tags$div(class="alert alert-info", uiOutput("exoPartielle"))
             ),
@@ -251,17 +251,17 @@ ui <- dashboardPage(
             tags$div(class="alert alert-info", textOutput("pas_d_abattement"))),
           # Si la valeur locative n'est pas renseignée
           conditionalPanel(
-            condition = "output.assujetti && input.vlBrute == 0", 
+            condition = "input.vlBrute == 0", 
             fluidRow(uiOutput("vlBruteNulle_abattements"))),
           # Dans le cas où la valeur locative est renseignée
           conditionalPanel(
-            condition = "output.assujetti && input.vlBrute > 0",
+            condition = "input.vlBrute > 0",
             div(
               h4("Base locatives nettes retenues"),
               dataTableOutput("calcul_baseNette"),
               hr())),
           conditionalPanel(
-            condition = "output.assujetti && input.residence == 'principale' && input.vlBrute > 0",
+            condition = "input.residence == 'principale' && input.vlBrute > 0",
             div(
               radioButtons("ab_gph", "Calcul de la base locative nette", choices = "", inline = TRUE),
               dataTableOutput("abattements"),

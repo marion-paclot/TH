@@ -11,12 +11,12 @@ auquel vous avez droit.</p>"
 
 
 showTextExoneration = function (nbParts, seuil, exonerations, residence, tlv) {
-  
+  print(exonerations)
   ## En tête
   enteteExplication = ifelse(exonerations$assujetti, 
                              "Vous êtes assujetti à la taxe d'habitation.",
                              "Vous êtes exonéré de taxe d'habitation.")
-  
+  print(enteteExplication)
   pSeuil = sprintf("L'exonération est soumise à condition de revenu : 
   Le RFR d'un foyer de %s part%s ne doit pas dépasser %s.", 
   nbParts, ifelse(nbParts > 1, 's', ''), euro(seuil, F))
