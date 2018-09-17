@@ -34,13 +34,13 @@ server <- function(input, output, session) {
     updateTextInput(session, "nbPAC", value = vec)
   })
   
-  observe({
-    vec = input$rfr
-    # vec[is.na(vec)] = 0
-    vec[vec<0]=0
-    vec = round(vec)
-    updateTextInput(session, "rfr", value = vec)
-  })
+  # observe({
+  #   vec = input$rfr
+  #   # vec[is.na(vec)] = 0
+  #   vec[vec<0]=0
+  #   vec = round(vec)
+  #   updateTextInput(session, "rfr", value = vec)
+  # })
 
   
   # Introduction
@@ -69,7 +69,7 @@ server <- function(input, output, session) {
 
     rfr = input$rfr
     rfr[is.na(rfr)] = 0
-    
+    rfr[rfr<0] =0
     
     nbParts[is.na(nbParts)] = 1
     nbParts = ifelse(nbParts %% 0.25 != 0, round(nbParts/0.25)*0.25, nbParts)
