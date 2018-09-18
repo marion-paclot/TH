@@ -18,6 +18,13 @@ server <- function(input, output, session) {
     updateTabItems(session, "tabs", "detail")
   })
   
+  observe({
+    shinyjs::hide("tauxMajRsCommune")
+    
+    if(input$residence == "secondaire")
+      shinyjs::show("tauxMajRsCommune")
+  })
+
   # On ne peut pas entrer autre chose que des chiffres dans nbParts ou nbPac
   # Dans le cas où on met des valeurs non divisibles par 0.25, correction
   observe({
@@ -310,10 +317,10 @@ server <- function(input, output, session) {
   
   output$calcul_baseNette = DT::renderDataTable({
     datatable(calculTH()$detail[1:3,], 
-              options = list(dom = 't', "pageLength" = 40))
+              options = list(dom = 't', "pageLength" = 40, ordering=F))
   })
-  
-  output$abattements <- DT::renderDataTable({
+
+    output$abattements <- DT::renderDataTable({
     ct = input$ab_gph
     
     vlMoyenne = entree()$reiCom[,as.character(colValeurLoc[ct])]
@@ -366,7 +373,7 @@ server <- function(input, output, session) {
                                    Multiplicateur = paste('x', multiplicateur),
                                    Explication = explications)
     rownames(detailAbattements) = c("Général à la base", "PAC1-2", "PAC3", "Spécial", "Handicapé")
-    detailAbattements = datatable(detailAbattements, options = list(dom = 't'))
+    detailAbattements = datatable(detailAbattements, options = list(dom = 't', ordering=F))
     
     return(detailAbattements)
   })
@@ -443,7 +450,7 @@ server <- function(input, output, session) {
     if(RV[['TAB_BOX']] == 'plafonnement'){
       tableau = data.frame(c(1,1))
     }
-    datatable(tableau, options = list(dom = 't', "pageLength" = 40))
+    datatable(tableau, options = list(dom = 't', "pageLength" = 40, ordering=F))
   })
   
   

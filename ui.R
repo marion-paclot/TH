@@ -1,5 +1,4 @@
 ui <- dashboardPage(
-  
   dashboardHeader(
     # Ligne d'entête
     title = "Taxe d'habitation",
@@ -173,6 +172,8 @@ ui <- dashboardPage(
                   inline = FALSE
                   ),
                 # groupTooltip(id = "residence", choice = "vacant", title = tooltipVacant),
+
+                useShinyjs(),
                 numericInput(
                   "tauxMajRsCommune",
                   "Majoration résidence secondaire (en %)",

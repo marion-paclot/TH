@@ -8,6 +8,7 @@ library(plyr)
 library(stringr)
 library(shinydashboard)
 library(Cairo)
+library(shinyjs)
 
 options(shiny.usecairo=T, shiny.reactlog = T, stringsAsFactors = FALSE)
 source('components/modal_pourquoi.R', encoding='UTF-8')
@@ -158,9 +159,9 @@ formatter_phrase = function(phrase){
 euro = function(montant, allegement){
   montant = format(montant, digits=9, decimal.mark=",",big.mark=" ")
   montant = paste(montant, "€")
-  if (allegement){
-    montant = gsub("^0 €$", "-", montant)
-  }
+  # if (allegement){
+  #   montant = gsub("^0 €$", "-", montant)
+  # }
   return(montant)
 }
 
@@ -351,8 +352,8 @@ calculComplet = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCommun
   }
   fraisGestion_affichage = euro(fraisGestion, F)
   fraisGestion_affichage[1] = ifelse (typeRes == "vacant", 
-                                      paste("Com. + syndic. + interco. =\n", fraisGestion_affichage[1]),
-                                      paste("Com. + interco. =\n", fraisGestion_affichage[1]))
+                                      paste(fraisGestion_affichage[1] ,"(Com. + syndic. + interco.)"),
+                                      paste(fraisGestion_affichage[1], "(Com. + syndic. + interco.)"))
   
   
   # Prélèvement pour base elevée - applicable uniquement aux communes
@@ -364,21 +365,21 @@ calculComplet = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCommun
   prelevementResSecondaire = calculer_prelevement(basesNettes, tauxResSecondaire, "casPart13")
   prelevementResSecondaire_affichage = euro(prelevementResSecondaire,F)
   prelevementResSecondaire_affichage[1] = ifelse (typeRes == "secondaire", 
-                                      paste("Com. + interco. =\n", prelevementResSecondaire_affichage[1]),
+                                      paste(prelevementResSecondaire_affichage[1], "(Com. + interco.)"),
                                       "0 €")
   # Tout en un tableau
   detail = data.frame(
     "Valeur locative brute" = euro(vlBrute, F), 
-    "Abattements" = euro(totauxAbattements, T), 
-    "Base nette" = euro(basesNettes, F), 
-    "Taux d'imposition" = percent(tauxCotisation), 
-    "Cotisations" = euro(cotisations, T), 
-    "Taux de gestion" = percent(tauxFraisGestion), 
-    "Frais de gestion" = fraisGestion_affichage,
-    "Taux de cotisation pour base élevée" = percent(tauxBaseElevee), 
-    "Prélèvement pour base élevée" = euro(prelevementBaseElevee, T),
-    "Taux de cotisation pour résidence secondaire" = percent(tauxResSecondaire), 
-    "Prélèvement sur résidence secondaire" = prelevementResSecondaire_affichage
+    "Abattements" = paste('-', euro(totauxAbattements, T)), 
+    "Base nette" = paste('=', euro(basesNettes, F)), 
+    "Taux d'imposition" = paste('x', percent(tauxCotisation)), 
+    "Cotisations" = paste('=', euro(cotisations, T)), 
+    "Taux de gestion" = paste('x', percent(tauxFraisGestion)), 
+    "Frais de gestion" = paste('=', fraisGestion_affichage),
+    "Taux de cotisation pour base élevée" = paste('x', percent(tauxBaseElevee)), 
+    "Prélèvement pour base élevée" = paste('=', euro(prelevementBaseElevee, T)),
+    "Taux de cotisation pour résidence secondaire" = paste('x', percent(tauxResSecondaire)), 
+    "Prélèvement sur résidence secondaire" = paste('=', prelevementResSecondaire_affichage)
   )
   
   # Si les cotisations sont à 0%, on n'affiche pas les 3 premières lignes 
