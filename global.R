@@ -8,6 +8,7 @@ library(plyr)
 library(stringr)
 library(shinydashboard)
 library(Cairo)
+library(shinyjs)
 
 options(shiny.usecairo=T, shiny.reactlog = T, stringsAsFactors = FALSE)
 source('components/modal_pourquoi.R', encoding='UTF-8')
