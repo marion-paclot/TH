@@ -1,3 +1,5 @@
+options(scipen=999)
+
 ui <- dashboardPage(
   dashboardHeader(
     # Ligne d'entête
