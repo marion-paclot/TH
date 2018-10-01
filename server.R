@@ -30,6 +30,7 @@ server <- function(input, output, session) {
   observe({
     vec = input$nbParts
     vec[is.na(vec)] = 1
+    vec[vec < 1] = 1
     vec = ifelse(vec%%0.25 != 0, round(vec/0.25)*0.25, vec)
     updateTextInput(session, "nbParts", value = vec)
   })
@@ -80,6 +81,7 @@ server <- function(input, output, session) {
     
     nbParts[is.na(nbParts)] = 1
     nbParts = ifelse(nbParts %% 0.25 != 0, round(nbParts/0.25)*0.25, nbParts)
+    nbParts[nbParts <1] = 1
     nbPAC[is.na(nbPAC)] = 0
     nbPAC = ifelse(nbPAC %% 0.5 != 0, round(nbPAC/0.5)*0.5, nbPAC)
 
