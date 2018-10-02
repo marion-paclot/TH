@@ -395,6 +395,8 @@ calculComplet = function(nbPAC, rfr, seuil, vlBrute, situation, alloc, reiCommun
   # Eligible au plafonnement
   
   seuilEligibilite = calculer_seuil(grille_1417_2_CGI, zoneGeo, 2017, nbParts)
+  cat("\nRFR : ", rfr)
+  cat("\nSeuil éligibilité : ", seuilEligibilite)
   eligibilite = ! any(isf | typeRes != "principale" | rfr > seuilEligibilite)
   
   # Montant de l'abattement de rfr

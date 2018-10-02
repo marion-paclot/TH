@@ -153,9 +153,10 @@ server <- function(input, output, session) {
   ### Seuils divers d'exonération et d'abattement
   seuils <- reactive({
     return(list(
+      # Utilisé pour le seuil si exonération totale + abattement spécial à la base
       art1417_1 = calculer_seuil(grille_1417_1_CGI, entree()$zoneGeo, "2017", entree()$nbParts),
       art1417_2 = calculer_seuil(grille_1417_2_CGI, entree()$zoneGeo, "2017", entree()$nbParts),
-      art1417_1bis = calculer_seuil(grille_1417_1bis_CGI, entree()$zoneGeo, "2017", entree()$nbParts),
+      # art1417_1bis = calculer_seuil(grille_1417_1bis_CGI, entree()$zoneGeo, "2017", entree()$nbParts),
       art1414_A1 = calculer_seuil(grille_1414_A1_CGI, entree()$zoneGeo, "2017", entree()$nbParts),
       art1417_2bisa = calculer_seuil(grille_1417_2bisa_CGI, "France", "2018", entree()$nbParts),
       art1417_2bisb = calculer_seuil(grille_1417_2bisb_CGI, "France", "2018", entree()$nbParts)
@@ -495,7 +496,7 @@ server <- function(input, output, session) {
                     votre revenu fiscal de référence ne doit pas dépasser %s pour 
                        que le plafonnement de la taxe d'habitation vous soit accordé. 
                        Ce plafonnement n'est pas valable pour les résidences secondaires, ni
-                       pour les foyers ayant acquitté l'ISF.</p>", euro(seuils()$art1417_2bisb, F))
+                       pour les foyers ayant acquitté l'ISF.</p>", euro(seuils()$art1417_2, F))
       if (! calculTH()$eligibilite){
         if (entree()$rfr > seuils()$art1417_2) {
           phrase2 = sprintf("<p>Votre revenu fiscal de référence étant de %s, vous ne pouvez pas bénéficier
