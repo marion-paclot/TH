@@ -32,14 +32,18 @@ server <- function(input, output, session) {
     vec[is.na(vec)] = 1
     vec[vec < 1] = 1
     vec = ifelse(vec%%0.25 != 0, round(vec/0.25)*0.25, vec)
-    updateTextInput(session, "nbParts", value = vec)
+    if (vec != input$nbParts){
+      updateTextInput(session, "nbParts", value = vec)
+    }
   })
   
   observe({
     vec = input$nbPAC
     vec[is.na(vec)] = 0
     vec = ifelse(vec%%0.5 != 0, round(vec/0.5)*0.5, vec)
-    updateTextInput(session, "nbPAC", value = vec)
+    if (vec != input$nbPAC){
+      updateTextInput(session, "nbPAC", value = vec)
+    }
   })
   
   # observe({
