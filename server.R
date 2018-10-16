@@ -29,6 +29,7 @@ server <- function(input, output, session) {
   # Dans le cas où on met des valeurs non divisibles par 0.25, correction
   observe({
     vec = input$nbParts
+    print(vec)
     vec[is.na(vec)] = 1
     vec[vec < 1] = 1
     vec = ifelse(vec%%0.25 != 0, round(vec/0.25)*0.25, vec)
